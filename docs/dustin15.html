@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dustin Tight - v1.0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        #game-container {
+            position: relative;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        #puzzle-board {
+            border: 2px solid #000080;
+            background-color: #0000FF;
+            position: relative;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .status {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+            background-color: #f0f0f0;
+            border: 1px solid #a0a0a0;
+            border-radius: 4px;
+        }
+        
+        button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        select {
+            padding: 8px;
+            margin: 10px 0;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: black;
+        }
+        
+        .rotate-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Dustin Tight - v1.0</h1>
+    
+    <div class="status" id="status-label">Dustin Tight puzzle simulator</div>
+    
+    <div class="controls">
+        <select id="puzzle-select">
+            <option value="Solved puzzle">Solved puzzle</option>
+            <option value="Original task">Original task</option>
+            <option value="Swap - 15/14-13">Swap - 15/14-13</option>
+            <option value="Rotate part - 13-14">Rotate part - 13-14</option>
+            <option value="Mirror puzzle">Mirror puzzle</option>
+            <option value="Rotate 90 puzzle">Rotate 90 puzzle</option>
+            <option value="Rotate 180 puzzle">Rotate 180 puzzle</option>
+            <option value="Rotate 270 puzzle">Rotate 270 puzzle</option>
+        </select>
+        
+        <div class="rotate-buttons">
+            <button id="reset-btn">Reset</button>
+            <button id="scramble-btn">Scramble</button>
+            <button id="about-btn">About</button>
+        </div>
+        
+        <div class="status" id="info-label">Moves: 0</div>
+    </div>
+    
+    <div id="game-container">
+        <button id="rotate-left-btn" style="margin-right: 20px;">&lt;</button>
+        <canvas id="puzzle-board"></canvas>
+        <button id="rotate-right-btn" style="margin-left: 20px;">&gt;</button>
+    </div>
+    
+    <div id="about-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>About: Dustin 15 Simulator</h2>
+            <p>Grigorusha Puzzle Simulators: <a href="https://twistypuzzles.com/forum/viewtopic.php?t=38581" target="_blank">https://twistypuzzles.com/forum/viewtopic.php?t=38581</a></p>
+            <p>Grigorusha Simulators Git: <a href="https://github.com/grigorusha/dustin" target="_blank">https://github.com/grigorusha/dustin</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Константы
+        const DISK_RADIUS = 30;
+        const LINK_SIZE = 20;
+        const board_size = DISK_RADIUS * 2 * 4;
+        const border_size = 10;
+        const board_shift = [50, 80];
+        const disk_shift = 2;
+        const WIDTH = DISK_RADIUS * 2 * 4 + 2 * board_shift[0];
+        const HEIGHT = DISK_RADIUS * 2 * 4 + 2 * board_shift[1] + 10;
+
+        // Цвета
+        const clWhite = '#F0F0F0';
+        const clCyan = '#00FFFF';
+        const clSeaGreen = '#3cb371';
+        const clBlack = '#202020';
+        const clBlue = '#0000FF';
+        const clNavy = '#000080';
+
+        // Состояние игры
+        let puzzle = [];
+        const puzzle_solved = [
+            [1, 2, 3, 4],
+            [5, 6, 7, 8],
+            [9, 10, 11, 12],
+            [13, 14, 15, 0]
+        ];
+        
+        let puzzle_parts = [
+            {num: 1, para: 2, angle: 0, color: clWhite},
+            {num: 3, para: 4, angle: 0, color: clCyan},
+            {num: 5, para: 6, angle: 0, color: clCyan},
+            {num: 7, para: 8, angle: 0, color: clWhite},
+            {num: 9, para: 10, angle: 0, color: clWhite},
+            {num: 11, para: 12, angle: 0, color: clCyan},
+            {num: 13, para: 14, angle: 0, color: clCyan},
+            {num: 15, para: null, angle: 0, color: clWhite}
+        ];
+
+        const puzzles_mas = [
+            "Solved puzzle", "Original task", "Swap - 15/14-13", "Rotate part - 13-14", 
+            "Mirror puzzle", "Rotate 90 puzzle", "Rotate 180 puzzle", "Rotate 270 puzzle"
+        ];
+        
+        let puzzle_name = puzzles_mas[0];
+        let moves = 0;
+
+        // Получение элементов DOM
+        const canvas = document.getElementById('puzzle-board');
+        const ctx = canvas.getContext('2d');
+        const statusLabel = document.getElementById('status-label');
+        const infoLabel = document.getElementById('info-label');
+        const puzzleSelect = document.getElementById('puzzle-select');
+        const resetBtn = document.getElementById('reset-btn');
+        const scrambleBtn = document.getElementById('scramble-btn');
+        const aboutBtn = document.getElementById('about-btn');
+        const rotateLeftBtn = document.getElementById('rotate-left-btn');
+        const rotateRightBtn = document.getElementById('rotate-right-btn');
+        const aboutModal = document.getElementById('about-modal');
+        const closeModal = document.querySelector('.close');
+
+        // Инициализация canvas
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        // Функции для работы с пазлом
+        function puzzle_parts_init(puzzle) {
+            for (const part of puzzle_parts) {
+                const [x1, y1] = find_index(puzzle, part.num);
+                if (part.para === 0) {
+                    part.angle = 0;
+                } else if (part.para !== null) {
+                    const [x2, y2] = find_index(puzzle, part.para);
+                    
+                    if (y1 === y2) {
+                        part.angle = x1 < x2 ? 0 : 180;
+                    } else if (x1 === x2) {
+                        part.angle = y1 < y2 ? 90 : 270;
+                    } else {
+                        part.angle = 0;
+                    }
+                }
+            }
+        }
+
+        function puzzle_set(puzzle_name) {
+            let puzzle_start = [];
+            
+            if (puzzle_name === "Solved puzzle") {
+                puzzle_start = [
+                    [1, 2, 3, 4],
+                    [5, 6, 7, 8],
+                    [9, 10, 11, 12],
+                    [13, 14, 15, 0]
+                ];
+            } else if (puzzle_name === "Original task") {
+                puzzle_start = [
+                    [13, 14, 15, 0],
+                    [9, 10, 11, 12],
+                    [5, 6, 7, 8],
+                    [1, 2, 3, 4]
+                ];
+            } else if (puzzle_name === "Swap - 15/14-13") {
+                puzzle_start = [
+                    [1, 2, 3, 4],
+                    [5, 6, 7, 8],
+                    [9, 10, 11, 12],
+                    [15, 13, 14, 0]
+                ];
+            } else if (puzzle_name === "Rotate part - 13-14") {
+                puzzle_start = [
+                    [1, 2, 3, 4],
+                    [5, 6, 7, 8],
+                    [9, 10, 11, 12],
+                    [14, 13, 15, 0]
+                ];
+            } else if (puzzle_name === "Mirror puzzle") {
+                puzzle_start = [
+                    [3, 4, 1, 2],
+                    [7, 8, 5, 6],
+                    [11, 12, 9, 10],
+                    [0, 15, 13, 14]
+                ];
+            } else if (puzzle_name === "Rotate 90 puzzle") {
+                puzzle_start = [
+                    [13, 9, 5, 1],
+                    [14, 10, 6, 2],
+                    [15, 11, 7, 3],
+                    [0, 12, 8, 4]
+                ];
+            } else if (puzzle_name === "Rotate 180 puzzle") {
+                puzzle_start = [
+                    [0, 15, 14, 13],
+                    [12, 11, 10, 9],
+                    [8, 7, 6, 5],
+                    [4, 3, 2, 1]
+                ];
+            } else if (puzzle_name === "Rotate 270 puzzle") {
+                puzzle_start = [
+                    [4, 8, 12, 0],
+                    [3, 7, 11, 15],
+                    [2, 6, 10, 14],
+                    [1, 5, 9, 13]
+                ];
+            } else {
+                puzzle_start = [
+                    [1, 2, 3, 4],
+                    [5, 6, 7, 8],
+                    [9, 10, 11, 12],
+                    [13, 14, 15, 0]
+                ];
+            }
+            
+            puzzle_parts_init(puzzle_start);
+            return puzzle_start;
+        }
+
+        function find_index(mas, element) {
+            if (!mas.length) return [null, null];
+            
+            if (!Array.isArray(mas[0])) {
+                // Одномерный массив
+                const pos = mas.indexOf(element);
+                return pos !== -1 ? [pos, 0] : [null, null];
+            } else {
+                // Двумерный массив
+                for (let y = 0; y < mas.length; y++) {
+                    const x = mas[y].indexOf(element);
+                    if (x !== -1) return [x, y];
+                }
+                return [null, null];
+            }
+        }
+
+        function dicmas_find(mas, index, element) {
+            return mas.find(item => item[index] === element) || null;
+        }
+
+        function rotate_matrix(matrix, turn) {
+            const cube_size = matrix.length;
+            const layers = Math.floor(cube_size / 2);
+            
+            for (let ll = 0; ll < layers; ll++) {
+                const size = cube_size - ll * 2 - 1;
+                
+                for (let pos = 0; pos < size; pos++) {
+                    const pos1 = matrix[ll][pos + ll];
+                    const pos2 = matrix[pos + ll][cube_size - 1 - ll];
+                    const pos3 = matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos];
+                    const pos4 = matrix[cube_size - 1 - ll - pos][ll];
+                    
+                    if (turn === 1) {
+                        matrix[ll][pos + ll] = pos4;
+                        matrix[pos + ll][cube_size - 1 - ll] = pos1;
+                        matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = pos2;
+                        matrix[cube_size - 1 - ll - pos][ll] = pos3;
+                    } else if (turn === 2) {
+                        matrix[ll][pos + ll] = pos3;
+                        matrix[pos + ll][cube_size - 1 - ll] = pos4;
+                        matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = pos1;
+                        matrix[cube_size - 1 - ll - pos][ll] = pos2;
+                    } else if (turn === -1 || turn === 3) {
+                        matrix[ll][pos + ll] = pos2;
+                        matrix[pos + ll][cube_size - 1 - ll] = pos3;
+                        matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = pos4;
+                        matrix[cube_size - 1 - ll - pos][ll] = pos1;
+                    }
+                }
+            }
+            
+            return matrix;
+        }
+
+        // Инициализация игры
+        function init_game(puzzle_name) {
+            puzzle = puzzle_set(puzzle_name);
+            if (!puzzle.length) return;
+            
+            status_update();
+            draw_puzzle();
+        }
+
+        // Обновление статуса
+        function status_update() {
+            statusLabel.textContent = "Dustin Tight puzzle simulator";
+            
+            let solved = "";
+            let isSolved = true;
+            
+            // Проверяем, решена ли головоломка
+            for (let i = 0; i < puzzle.length; i++) {
+                for (let j = 0; j < puzzle[i].length; j++) {
+                    if (puzzle[i][j] !== puzzle_solved[i][j]) {
+                        isSolved = false;
+                        break;
+                    }
+                }
+                if (!isSolved) break;
+            }
+            
+            if (isSolved) {
+                solved = ". Solved!";
+            }
+            
+            infoLabel.textContent = "Moves: " + moves + solved;
+        }
+
+        // Отрисовка пазла
+        function draw_digit(num, color, x, y, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle * Math.PI / 180);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = color;
+            ctx.fillText(num.toString(), 0, 0);
+            ctx.restore();
+        }
+
+        function draw_puzzle() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Рисуем фон доски - теперь размер соответствует рамке
+            const shift = 3;
+            const board = {
+                x: board_shift[0] - border_size - shift,
+                y: board_shift[1] - border_size - shift,
+                width: board_size + 2 * border_size + 2 * shift,
+                height: board_size + 2 * border_size + 2 * shift
+            };
+            
+            // Рисуем рамку
+            const border = {
+                x: board_shift[0] - border_size - shift,
+                y: board_shift[1] - border_size - shift,
+                width: board_size + 2 * border_size + 2 * shift,
+                height: board_size + 2 * border_size + 2 * shift
+            };
+            
+            // Рисуем синий фон доски
+            ctx.fillStyle = clBlue;
+            ctx.fillRect(board.x, board.y, board.width, board.height);
+            
+            // Рисуем темно-синюю рамку
+            ctx.strokeStyle = clNavy;
+            ctx.lineWidth = border_size;
+            ctx.strokeRect(border.x, border.y, border.width, border.height);
+            
+            // Рисуем части пазла
+            for (let pos_y = 0; pos_y < puzzle.length; pos_y++) {
+                for (let pos_x = 0; pos_x < puzzle[pos_y].length; pos_x++) {
+                    const part_num = puzzle[pos_y][pos_x];
+                    if (part_num % 2 === 0) continue;
+                    
+                    const part_dict = dicmas_find(puzzle_parts, "num", part_num);
+                    const para = part_dict.para;
+                    
+                    const x1 = (pos_x * 2 + 1) * DISK_RADIUS + board_shift[0];
+                    const y1 = (pos_y * 2 + 1) * DISK_RADIUS + board_shift[1];
+                    
+                    // Рисуем диск
+                    ctx.beginPath();
+                    ctx.arc(x1, y1, DISK_RADIUS - disk_shift, 0, Math.PI * 2);
+                    ctx.fillStyle = part_dict.color;
+                    ctx.fill();
+                    ctx.strokeStyle = clSeaGreen;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    if (para !== null) {
+                        const [pos_x2, pos_y2] = find_index(puzzle, para);
+                        const x2 = (pos_x2 * 2 + 1) * DISK_RADIUS + board_shift[0];
+                        const y2 = (pos_y2 * 2 + 1) * DISK_RADIUS + board_shift[1];
+                        
+                        // Рисуем второй диск
+                        ctx.beginPath();
+                        ctx.arc(x2, y2, DISK_RADIUS - disk_shift, 0, Math.PI * 2);
+                        ctx.fillStyle = part_dict.color;
+                        ctx.fill();
+                        ctx.strokeStyle = clSeaGreen;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        
+                        // Рисуем связь между дисками
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.strokeStyle = part_dict.color;
+                        ctx.lineWidth = LINK_SIZE;
+                        ctx.stroke();
+                    }
+                    
+                    // Рисуем цифру на первом диске
+                    draw_digit(part_num, clBlack, x1, y1, part_dict.angle);
+                    
+                    // Рисуем цифру на втором диске, если есть
+                    if (para !== null) {
+                        const [pos_x2, pos_y2] = find_index(puzzle, para);
+                        const x2 = (pos_x2 * 2 + 1) * DISK_RADIUS + board_shift[0];
+                        const y2 = (pos_y2 * 2 + 1) * DISK_RADIUS + board_shift[1];
+                        draw_digit(para, clBlack, x2, y2, part_dict.angle);
+                    }
+                }
+            }
+        }
+
+        // Логика игры
+        function scramble_game(max_move = 1000) {
+            let num_pred = -1;
+            
+            for (let nn = 0; nn < max_move; nn++) {
+                while (true) {
+                    let num;
+                    do {
+                        num = Math.floor(Math.random() * 15) + 1;
+                    } while (num_pred === num);
+                    
+                    const state = slide_part(num);
+                    if (state) {
+                        num_pred = num;
+                        break;
+                    }
+                }
+            }
+            
+            moves = 0;
+            status_update();
+            draw_puzzle();
+        }
+
+        function check_pos_part(x0, y0, x1, y1, x2 = null, y2 = null) {
+            if (y0 === y1) {
+                if (x1 === x0 - 1 || x1 === x0 + 1) {
+                    return 1;
+                }
+            } else if (x0 === x1) {
+                if (y1 === y0 - 1 || y1 === y0 + 1) {
+                    return 1;
+                }
+            }
+            
+            if (x2 !== null && y2 !== null) {
+                if (y0 === y2) {
+                    if (x2 === x0 - 1 || x2 === x0 + 1) {
+                        return 2;
+                    }
+                } else if (x0 === x2) {
+                    if (y2 === y0 - 1 || y2 === y0 + 1) {
+                        return 2;
+                    }
+                }
+            }
+            
+            return 0;
+        }
+
+        function slide_part(num) {
+            if (num === 0) {
+                return false;
+            }
+            
+            let part;
+            if (num % 2 === 1) { // 1,3,...,13,+15
+                part = dicmas_find(puzzle_parts, "num", num);
+            } else { // 2,4,...,14
+                part = dicmas_find(puzzle_parts, "para", num);
+            }
+            
+            const part_num = part.num;
+            const para = part.para;
+            
+            const [x0, y0] = find_index(puzzle, 0);
+            const [x1, y1] = find_index(puzzle, part_num);
+            const [x2, y2] = find_index(puzzle, para);
+            
+            if (part_num === 15) {
+                if (check_pos_part(x0, y0, x1, y1)) {
+                    puzzle[y0][x0] = part_num;
+                    puzzle[y1][x1] = 0;
+                    puzzle_parts_init(puzzle);
+                    return true;
+                }
+            } else {
+                const res = check_pos_part(x0, y0, x1, y1, x2, y2);
+                if (res === 1) {
+                    puzzle[y0][x0] = part_num;
+                    puzzle[y1][x1] = para;
+                    puzzle[y2][x2] = 0;
+                } else if (res === 2) {
+                    puzzle[y0][x0] = para;
+                    puzzle[y2][x2] = part_num;
+                    puzzle[y1][x1] = 0;
+                }
+                
+                if (res) {
+                    puzzle_parts_init(puzzle);
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        function check_and_part(mouseX, mouseY) {
+            if (!((board_shift[0] < mouseX && mouseX < (WIDTH - board_shift[0])) && 
+                  (board_shift[1] < mouseY && mouseY < (HEIGHT - board_shift[1])))) {
+                return null;
+            }
+            
+            let x = Math.floor((mouseX - board_shift[0]) / (2 * DISK_RADIUS));
+            let y = Math.floor((mouseY - board_shift[1]) / (2 * DISK_RADIUS));
+            
+            x = Math.max(0, Math.min(3, x));
+            y = Math.max(0, Math.min(3, y));
+            
+            const num = puzzle[y][x];
+            return num;
+        }
+
+        function rotate_board(direction) {
+            rotate_matrix(puzzle, direction);
+            puzzle_parts_init(puzzle);
+            status_update();
+            draw_puzzle();
+        }
+
+        // Обработчики событий
+        function setupEventListeners() {
+            // Выбор пазла
+            puzzleSelect.addEventListener('change', function() {
+                puzzle_name = this.value;
+                init_game(puzzle_name);
+                moves = 0;
+                status_update();
+            });
+            
+            // Кнопки управления (верхние)
+            resetBtn.addEventListener('click', function() {
+                init_game(puzzle_name);
+                moves = 0;
+                status_update();
+            });
+            
+            scrambleBtn.addEventListener('click', function() {
+                scramble_game();
+            });
+            
+            aboutBtn.addEventListener('click', function() {
+                aboutModal.style.display = 'block';
+            });
+            
+            // Кнопки вращения по бокам игрового поля
+            rotateLeftBtn.addEventListener('click', function() {
+                rotate_board(-1);
+            });
+            
+            rotateRightBtn.addEventListener('click', function() {
+                rotate_board(1);
+            });
+            
+            // Закрытие модального окна
+            closeModal.addEventListener('click', function() {
+                aboutModal.style.display = 'none';
+            });
+            
+            window.addEventListener('click', function(event) {
+                if (event.target === aboutModal) {
+                    aboutModal.style.display = 'none';
+                }
+            });
+            
+            // Клик по пазлу
+            canvas.addEventListener('click', function(event) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = event.clientX - rect.left;
+                const mouseY = event.clientY - rect.top;
+                
+                const num = check_and_part(mouseX, mouseY);
+                if (num) {
+                    if (slide_part(num)) {
+                        moves++;
+                        status_update();
+                        draw_puzzle();
+                    }
+                }
+            });
+        }
+
+        // Инициализация при загрузке
+        window.onload = function() {
+            init_game(puzzle_name);
+            setupEventListeners();
+        };
+    </script>
+</body>
+</html>
