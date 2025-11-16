@@ -7,4 +7,6 @@ This is a simulator of the "Dustin Tight" puzzles.
 
 
 
+### **<a href="https://grigorusha.github.io/Dustin15/dustin15.html">Play online: Dustin Tight Simulator</a>** 
+
 ![](https://i.imgur.com/yMa3YM9.gif)
