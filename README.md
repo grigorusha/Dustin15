@@ -9,7 +9,7 @@ or
 
 
 This is an old variation of the game of fifteen, featuring doubled tiles and unusual game physics.
-The game was created by Fred Dustin. Here's his patent from 1933: ### **<a href="[https://sourceforge.net/projects/dustin15/](https://patents.google.com/patent/US1993211A/en?oq=US+1993211)">US1993211A</a>** 
+The game was created by Fred Dustin. Here's his patent from 1933: <a href="[https://sourceforge.net/projects/dustin15/](https://patents.google.com/patent/US1993211A/en?oq=US+1993211)">US1993211A</a>
 
 
 ![](https://i.imgur.com/yMa3YM9.gif)
