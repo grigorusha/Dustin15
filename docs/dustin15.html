@@ -1,109 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dustin Tight - v1.0</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #f0f0f0;
-            margin: 0;
-            padding: 20px;
-        }
-        
-        #game-container {
-            position: relative;
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-        }
-        
-        #puzzle-board {
-            border: 2px solid #000080;
-            background-color: #0000FF;
-            position: relative;
-        }
-        
-        .controls {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .status {
-            margin: 10px 0;
-            font-weight: bold;
-        }
-        
-        button {
-            padding: 8px 16px;
-            cursor: pointer;
-            background-color: #f0f0f0;
-            border: 1px solid #a0a0a0;
-            border-radius: 4px;
-        }
-        
-        button:hover {
-            background-color: #e0e0e0;
-        }
-        
-        select {
-            padding: 8px;
-            margin: 10px 0;
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.4);
-        }
-        
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 5px;
-        }
-        
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        .close:hover {
-            color: black;
-        }
-        
-        .rotate-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin: 10px 0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dustin Tight v2</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #eef1f6 0%, #d6dae3 100%);
+        min-height: 100vh; margin: 0;
+        padding: 24px 16px 40px;
+        display: flex; flex-direction: column; align-items: center;
+        color: #1a1a2e;
+    }
+    h1 { font-weight: 600; font-size: 22px; letter-spacing: .5px; margin: 0 0 4px; color: #22223b; }
+
+    .controls { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 4px; }
+
+    select {
+        padding: 9px 14px; border-radius: 8px; border: 1px solid #c7ccd6;
+        background: #fff; font-size: 14px; font-family: inherit;
+        min-width: 230px; box-shadow: 0 1px 2px rgba(0,0,0,.05);
+        cursor: pointer; transition: border-color .15s;
+    }
+    select:hover { border-color: #8a93a6; }
+    select:focus { outline: none; border-color: #5569ff; box-shadow: 0 0 0 3px rgba(85,105,255,.15); }
+
+    .button-row { display: flex; gap: 8px; align-items: center; }
+
+    button {
+        padding: 9px 18px; border: none; border-radius: 8px;
+        background: #fff; color: #22223b;
+        font-family: inherit; font-size: 14px; font-weight: 500;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(20,20,40,.10),
+                    0 2px 6px rgba(20,20,40,.06),
+                    inset 0 1px 0 rgba(255,255,255,.9);
+        transition: transform .12s, box-shadow .15s, background .15s, color .15s;
+    }
+    button:hover:not(:disabled) {
+        background: #fafbff;
+        box-shadow: 0 2px 4px rgba(20,20,40,.12),
+                    0 6px 14px rgba(20,20,40,.10),
+                    inset 0 1px 0 rgba(255,255,255,1);
+        transform: translateY(-1px);
+    }
+    button:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(20,20,40,.15), inset 0 2px 4px rgba(0,0,0,.06);
+    }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    button.primary {
+        background: linear-gradient(180deg, #5569ff 0%, #3a4fe6 100%);
+        color: #fff;
+        box-shadow: 0 1px 2px rgba(58,79,230,.30),
+                    0 4px 12px rgba(58,79,230,.28),
+                    inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    button.primary:hover:not(:disabled) {
+        background: linear-gradient(180deg, #6477ff 0%, #4a60f0 100%);
+        box-shadow: 0 2px 4px rgba(58,79,230,.35),
+                    0 8px 20px rgba(58,79,230,.35),
+                    inset 0 1px 0 rgba(255,255,255,.30);
+    }
+
+    button.danger {
+        background: linear-gradient(180deg, #ef4444 0%, #d92b2b 100%);
+        color: #fff;
+        box-shadow: 0 1px 2px rgba(217,43,43,.30),
+                    0 4px 12px rgba(217,43,43,.28),
+                    inset 0 1px 0 rgba(255,255,255,.25);
+    }
+    button.danger:hover:not(:disabled) {
+        background: linear-gradient(180deg, #f45757 0%, #e03b3b 100%);
+        box-shadow: 0 2px 4px rgba(217,43,43,.35),
+                    0 8px 20px rgba(217,43,43,.35),
+                    inset 0 1px 0 rgba(255,255,255,.30);
+    }
+
+    #solve-btn { min-width: 96px; }
+
+    .weight-field {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 0 12px; height: 38px; background: #fff; border-radius: 8px;
+        box-shadow: 0 1px 2px rgba(20,20,40,.10), 0 2px 6px rgba(20,20,40,.06);
+        font-size: 13px; font-weight: 500; color: #555a6b;
+    }
+    .weight-field input {
+        width: 56px; border: none; outline: none;
+        font-family: inherit; font-size: 14px; font-weight: 600;
+        color: #22223b; background: transparent; text-align: right;
+    }
+
+    .status { margin: 6px 0 0; font-weight: 600; font-size: 14px; color: #444a5e; }
+
+    #game-container {
+        position: relative; margin: -32px 0 6px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    #puzzle-board { display: block; border-radius: 22px; }
+
+    .rotate-btn {
+        width: 46px; height: 46px; padding: 0; border-radius: 50%;
+        font-size: 22px; font-weight: 400; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+        color: #3a4fe6;
+    }
+    .rotate-btn:hover:not(:disabled) { color: #2238d8; }
+
+    #solver-info {
+        margin-top: 4px; padding: 10px 14px; min-width: 480px; max-width: 640px;
+        background: #f7f8fc; border: 1px solid #e2e5ee; border-radius: 10px;
+        box-shadow: inset 0 1px 2px rgba(20,20,40,.04);
+        font-family: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas, monospace;
+        font-size: 12px; line-height: 1.5; color: #333850;
+        white-space: pre-wrap; text-align: left;
+    }
+    #solver-info:empty { display: none; }
+
+    .modal { display: none; position: fixed; inset: 0; z-index: 10;
+             background: rgba(10,12,30,.45); backdrop-filter: blur(3px); }
+    .modal-content { background: #fff; margin: 14% auto; padding: 22px 26px;
+                     border-radius: 14px; width: 80%; max-width: 500px;
+                     box-shadow: 0 20px 50px rgba(10,12,30,.30); position: relative; }
+    .modal-content h2 { margin-top: 0; font-size: 18px; }
+    .modal-content a { color: #3a4fe6; }
+    .close { position: absolute; right: 14px; top: 10px; font-size: 26px;
+             color: #99a; cursor: pointer; line-height: 1; }
+    .close:hover { color: #333; }
+</style>
 </head>
 <body>
-    <h1>Dustin Tight - v1.0</h1>
-    
-    <div class="status" id="status-label">Dustin Tight puzzle simulator</div>
-    
+    <h1>Dustin Tight v2</h1>
+
     <div class="controls">
         <select id="puzzle-select">
             <option value="Solved puzzle">Solved puzzle</option>
@@ -115,565 +146,1151 @@
             <option value="Rotate 180 puzzle">Rotate 180 puzzle</option>
             <option value="Rotate 270 puzzle">Rotate 270 puzzle</option>
         </select>
-        
-        <div class="rotate-buttons">
+
+        <div class="button-row">
             <button id="reset-btn">Reset</button>
             <button id="scramble-btn">Scramble</button>
             <button id="about-btn">About</button>
         </div>
-        
+
+        <div class="button-row">
+            <button id="solve-btn" class="primary">Solve</button>
+            <label class="weight-field" title="Heuristic weight: 1 = optimal but slow, higher = faster but longer solutions">
+                W: <input type="number" id="weight-input" value="3" min="1" max="50" step="0.5">
+            </label>
+        </div>
+
         <div class="status" id="info-label">Moves: 0</div>
     </div>
-    
+
     <div id="game-container">
-        <button id="rotate-left-btn" style="margin-right: 20px;">&lt;</button>
+        <button id="rotate-left-btn" class="rotate-btn" title="Rotate counterclockwise">&#8634;</button>
         <canvas id="puzzle-board"></canvas>
-        <button id="rotate-right-btn" style="margin-left: 20px;">&gt;</button>
+        <button id="rotate-right-btn" class="rotate-btn" title="Rotate clockwise">&#8635;</button>
     </div>
-    
+
+    <div id="solver-info"></div>
+
     <div id="about-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>About: Dustin 15 Simulator</h2>
-            <p>Grigorusha Puzzle Simulators: <a href="https://twistypuzzles.com/forum/viewtopic.php?t=38581" target="_blank">https://twistypuzzles.com/forum/viewtopic.php?t=38581</a></p>
-            <p>Grigorusha Simulators Git: <a href="https://github.com/grigorusha/dustin" target="_blank">https://github.com/grigorusha/dustin</a></p>
+            <p>Grigorusha Puzzle Simulators:
+                <a href="https://twistypuzzles.com/forum/viewtopic.php?t=38581" target="_blank">thread on forum TP.com</a></p>
+            <p>Grigorusha Simulators Git:
+                <a href="https://github.com/grigorusha/dustin" target="_blank">github.com/grigorusha/dustin</a></p>
+            <p style="color:#555;">Solver: Weighted IDA* in a Web Worker.</p>
         </div>
     </div>
 
-    <script>
-        // Константы
-        const DISK_RADIUS = 30;
-        const LINK_SIZE = 20;
-        const board_size = DISK_RADIUS * 2 * 4;
-        const border_size = 10;
-        const board_shift = [50, 80];
-        const disk_shift = 2;
-        const WIDTH = DISK_RADIUS * 2 * 4 + 2 * board_shift[0];
-        const HEIGHT = DISK_RADIUS * 2 * 4 + 2 * board_shift[1] + 10;
+<script>
+/* ================================================================
+   CONSTANTS & STATE
+   ================================================================ */
+const DISK_RADIUS = 30;
+const LINK_SIZE   = 20;
+const board_size  = DISK_RADIUS * 2 * 4;
+const border_size = 10;
+const board_shift = [60, 90];
+const disk_shift  = 2;
+const WIDTH  = DISK_RADIUS * 2 * 4 + 2 * board_shift[0];
+const HEIGHT = DISK_RADIUS * 2 * 4 + 2 * board_shift[1] + 10;
 
-        // Цвета
-        const clWhite = '#F0F0F0';
-        const clCyan = '#00FFFF';
-        const clSeaGreen = '#3cb371';
-        const clBlack = '#202020';
-        const clBlue = '#0000FF';
-        const clNavy = '#000080';
+const clWhite     = '#F8F8FA';
+const clBluePiece = '#4A90D9';
+const clBlack     = '#202020';
 
-        // Состояние игры
-        let puzzle = [];
-        const puzzle_solved = [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 0]
-        ];
-        
-        let puzzle_parts = [
-            {num: 1, para: 2, angle: 0, color: clWhite},
-            {num: 3, para: 4, angle: 0, color: clCyan},
-            {num: 5, para: 6, angle: 0, color: clCyan},
-            {num: 7, para: 8, angle: 0, color: clWhite},
-            {num: 9, para: 10, angle: 0, color: clWhite},
-            {num: 11, para: 12, angle: 0, color: clCyan},
-            {num: 13, para: 14, angle: 0, color: clCyan},
-            {num: 15, para: null, angle: 0, color: clWhite}
-        ];
+let puzzle = [];
+const puzzle_solved = [
+    [1, 2, 3, 4],
+    [5, 6, 7, 8],
+    [9, 10, 11, 12],
+    [13, 14, 15, 0]
+];
 
-        const puzzles_mas = [
-            "Solved puzzle", "Original task", "Swap - 15/14-13", "Rotate part - 13-14", 
-            "Mirror puzzle", "Rotate 90 puzzle", "Rotate 180 puzzle", "Rotate 270 puzzle"
-        ];
-        
-        let puzzle_name = puzzles_mas[0];
-        let moves = 0;
+let puzzle_parts = [
+    {num: 1,  para: 2,    angle: 0, color: clWhite},
+    {num: 3,  para: 4,    angle: 0, color: clBluePiece},
+    {num: 5,  para: 6,    angle: 0, color: clBluePiece},
+    {num: 7,  para: 8,    angle: 0, color: clWhite},
+    {num: 9,  para: 10,   angle: 0, color: clWhite},
+    {num: 11, para: 12,   angle: 0, color: clBluePiece},
+    {num: 13, para: 14,   angle: 0, color: clBluePiece},
+    {num: 15, para: null, angle: 0, color: clWhite}
+];
 
-        // Получение элементов DOM
-        const canvas = document.getElementById('puzzle-board');
-        const ctx = canvas.getContext('2d');
-        const statusLabel = document.getElementById('status-label');
-        const infoLabel = document.getElementById('info-label');
-        const puzzleSelect = document.getElementById('puzzle-select');
-        const resetBtn = document.getElementById('reset-btn');
-        const scrambleBtn = document.getElementById('scramble-btn');
-        const aboutBtn = document.getElementById('about-btn');
-        const rotateLeftBtn = document.getElementById('rotate-left-btn');
-        const rotateRightBtn = document.getElementById('rotate-right-btn');
-        const aboutModal = document.getElementById('about-modal');
-        const closeModal = document.querySelector('.close');
+let puzzle_name = "Solved puzzle";
+let moves = 0;
 
-        // Инициализация canvas
-        canvas.width = WIDTH;
-        canvas.height = HEIGHT;
+let _scrambleId = 0;
 
-        // Функции для работы с пазлом
-        function puzzle_parts_init(puzzle) {
-            for (const part of puzzle_parts) {
-                const [x1, y1] = find_index(puzzle, part.num);
-                if (part.para === 0) {
-                    part.angle = 0;
-                } else if (part.para !== null) {
-                    const [x2, y2] = find_index(puzzle, part.para);
-                    
-                    if (y1 === y2) {
-                        part.angle = x1 < x2 ? 0 : 180;
-                    } else if (x1 === x2) {
-                        part.angle = y1 < y2 ? 90 : 270;
-                    } else {
-                        part.angle = 0;
-                    }
-                }
-            }
+const canvas       = document.getElementById('puzzle-board');
+const ctx          = canvas.getContext('2d');
+const infoLabel    = document.getElementById('info-label');
+const solverInfo   = document.getElementById('solver-info');
+const puzzleSelect = document.getElementById('puzzle-select');
+const resetBtn     = document.getElementById('reset-btn');
+const scrambleBtn  = document.getElementById('scramble-btn');
+const solveBtn     = document.getElementById('solve-btn');
+const aboutBtn     = document.getElementById('about-btn');
+const rotateLeftBtn  = document.getElementById('rotate-left-btn');
+const rotateRightBtn = document.getElementById('rotate-right-btn');
+const aboutModal   = document.getElementById('about-modal');
+const closeModal   = document.querySelector('.close');
+const weightInput  = document.getElementById('weight-input');
+
+canvas.width  = WIDTH;
+canvas.height = HEIGHT;
+
+/* ================================================================
+   GAME LOGIC
+   ================================================================ */
+function puzzle_parts_init(puzzle) {
+    for (const part of puzzle_parts) {
+        const [x1, y1] = find_index(puzzle, part.num);
+        if (part.para === 0) {
+            part.angle = 0;
+        } else if (part.para !== null) {
+            const [x2, y2] = find_index(puzzle, part.para);
+            if (y1 === y2)      part.angle = x1 < x2 ? 0 : 180;
+            else if (x1 === x2) part.angle = y1 < y2 ? 90 : 270;
+            else                part.angle = 0;
         }
+    }
+}
 
-        function puzzle_set(puzzle_name) {
-            let puzzle_start = [];
-            
-            if (puzzle_name === "Solved puzzle") {
-                puzzle_start = [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [9, 10, 11, 12],
-                    [13, 14, 15, 0]
-                ];
-            } else if (puzzle_name === "Original task") {
-                puzzle_start = [
-                    [13, 14, 15, 0],
-                    [9, 10, 11, 12],
-                    [5, 6, 7, 8],
-                    [1, 2, 3, 4]
-                ];
-            } else if (puzzle_name === "Swap - 15/14-13") {
-                puzzle_start = [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [9, 10, 11, 12],
-                    [15, 13, 14, 0]
-                ];
-            } else if (puzzle_name === "Rotate part - 13-14") {
-                puzzle_start = [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [9, 10, 11, 12],
-                    [14, 13, 15, 0]
-                ];
-            } else if (puzzle_name === "Mirror puzzle") {
-                puzzle_start = [
-                    [3, 4, 1, 2],
-                    [7, 8, 5, 6],
-                    [11, 12, 9, 10],
-                    [0, 15, 13, 14]
-                ];
-            } else if (puzzle_name === "Rotate 90 puzzle") {
-                puzzle_start = [
-                    [13, 9, 5, 1],
-                    [14, 10, 6, 2],
-                    [15, 11, 7, 3],
-                    [0, 12, 8, 4]
-                ];
-            } else if (puzzle_name === "Rotate 180 puzzle") {
-                puzzle_start = [
-                    [0, 15, 14, 13],
-                    [12, 11, 10, 9],
-                    [8, 7, 6, 5],
-                    [4, 3, 2, 1]
-                ];
-            } else if (puzzle_name === "Rotate 270 puzzle") {
-                puzzle_start = [
-                    [4, 8, 12, 0],
-                    [3, 7, 11, 15],
-                    [2, 6, 10, 14],
-                    [1, 5, 9, 13]
-                ];
+function puzzle_set(name) {
+    const map = {
+        "Solved puzzle":       [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14,15,0]],
+        "Original task":       [[13,14,15,0],[9,10,11,12],[5,6,7,8],[1,2,3,4]],
+        "Swap - 15/14-13":     [[1,2,3,4],[5,6,7,8],[9,10,11,12],[15,13,14,0]],
+        "Rotate part - 13-14": [[1,2,3,4],[5,6,7,8],[9,10,11,12],[14,13,15,0]],
+        "Mirror puzzle":       [[3,4,1,2],[7,8,5,6],[11,12,9,10],[0,15,13,14]],
+        "Rotate 90 puzzle":    [[13,9,5,1],[14,10,6,2],[15,11,7,3],[0,12,8,4]],
+        "Rotate 180 puzzle":   [[0,15,14,13],[12,11,10,9],[8,7,6,5],[4,3,2,1]],
+        "Rotate 270 puzzle":   [[4,8,12,0],[3,7,11,15],[2,6,10,14],[1,5,9,13]]
+    };
+    const start = map[name] || map["Solved puzzle"];
+    puzzle_parts_init(start);
+    return start;
+}
+
+function find_index(mas, element) {
+    if (!mas.length) return [null, null];
+    if (!Array.isArray(mas[0])) {
+        const pos = mas.indexOf(element);
+        return pos !== -1 ? [pos, 0] : [null, null];
+    }
+    for (let y = 0; y < mas.length; y++) {
+        const x = mas[y].indexOf(element);
+        if (x !== -1) return [x, y];
+    }
+    return [null, null];
+}
+function dicmas_find(mas, index, element) {
+    return mas.find(item => item[index] === element) || null;
+}
+function rotate_matrix(matrix, turn) {
+    const cube_size = matrix.length;
+    const layers = Math.floor(cube_size / 2);
+    for (let ll = 0; ll < layers; ll++) {
+        const size = cube_size - ll * 2 - 1;
+        for (let pos = 0; pos < size; pos++) {
+            const p1 = matrix[ll][pos + ll];
+            const p2 = matrix[pos + ll][cube_size - 1 - ll];
+            const p3 = matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos];
+            const p4 = matrix[cube_size - 1 - ll - pos][ll];
+            if (turn === 1) {
+                matrix[ll][pos + ll]                                 = p4;
+                matrix[pos + ll][cube_size - 1 - ll]                 = p1;
+                matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = p2;
+                matrix[cube_size - 1 - ll - pos][ll]                 = p3;
+            } else if (turn === 2) {
+                matrix[ll][pos + ll]                                 = p3;
+                matrix[pos + ll][cube_size - 1 - ll]                 = p4;
+                matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = p1;
+                matrix[cube_size - 1 - ll - pos][ll]                 = p2;
             } else {
-                puzzle_start = [
-                    [1, 2, 3, 4],
-                    [5, 6, 7, 8],
-                    [9, 10, 11, 12],
-                    [13, 14, 15, 0]
-                ];
-            }
-            
-            puzzle_parts_init(puzzle_start);
-            return puzzle_start;
-        }
-
-        function find_index(mas, element) {
-            if (!mas.length) return [null, null];
-            
-            if (!Array.isArray(mas[0])) {
-                // Одномерный массив
-                const pos = mas.indexOf(element);
-                return pos !== -1 ? [pos, 0] : [null, null];
-            } else {
-                // Двумерный массив
-                for (let y = 0; y < mas.length; y++) {
-                    const x = mas[y].indexOf(element);
-                    if (x !== -1) return [x, y];
-                }
-                return [null, null];
+                matrix[ll][pos + ll]                                 = p2;
+                matrix[pos + ll][cube_size - 1 - ll]                 = p3;
+                matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = p4;
+                matrix[cube_size - 1 - ll - pos][ll]                 = p1;
             }
         }
+    }
+    return matrix;
+}
 
-        function dicmas_find(mas, index, element) {
-            return mas.find(item => item[index] === element) || null;
-        }
+function check_pos_part(x0, y0, x1, y1, x2 = null, y2 = null) {
+    if (y0 === y1) { if (x1 === x0 - 1 || x1 === x0 + 1) return 1; }
+    else if (x0 === x1) { if (y1 === y0 - 1 || y1 === y0 + 1) return 1; }
+    if (x2 !== null && y2 !== null) {
+        if (y0 === y2) { if (x2 === x0 - 1 || x2 === x0 + 1) return 2; }
+        else if (x0 === x2) { if (y2 === y0 - 1 || y2 === y0 + 1) return 2; }
+    }
+    return 0;
+}
 
-        function rotate_matrix(matrix, turn) {
-            const cube_size = matrix.length;
-            const layers = Math.floor(cube_size / 2);
-            
-            for (let ll = 0; ll < layers; ll++) {
-                const size = cube_size - ll * 2 - 1;
-                
-                for (let pos = 0; pos < size; pos++) {
-                    const pos1 = matrix[ll][pos + ll];
-                    const pos2 = matrix[pos + ll][cube_size - 1 - ll];
-                    const pos3 = matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos];
-                    const pos4 = matrix[cube_size - 1 - ll - pos][ll];
-                    
-                    if (turn === 1) {
-                        matrix[ll][pos + ll] = pos4;
-                        matrix[pos + ll][cube_size - 1 - ll] = pos1;
-                        matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = pos2;
-                        matrix[cube_size - 1 - ll - pos][ll] = pos3;
-                    } else if (turn === 2) {
-                        matrix[ll][pos + ll] = pos3;
-                        matrix[pos + ll][cube_size - 1 - ll] = pos4;
-                        matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = pos1;
-                        matrix[cube_size - 1 - ll - pos][ll] = pos2;
-                    } else if (turn === -1 || turn === 3) {
-                        matrix[ll][pos + ll] = pos2;
-                        matrix[pos + ll][cube_size - 1 - ll] = pos3;
-                        matrix[cube_size - 1 - ll][cube_size - 1 - ll - pos] = pos4;
-                        matrix[cube_size - 1 - ll - pos][ll] = pos1;
-                    }
-                }
-            }
-            
-            return matrix;
-        }
+function slide_part(num) {
+    if (num === 0) return false;
+    const part = (num % 2 === 1)
+        ? dicmas_find(puzzle_parts, "num", num)
+        : dicmas_find(puzzle_parts, "para", num);
+    if (!part) return false;
 
-        // Инициализация игры
-        function init_game(puzzle_name) {
-            puzzle = puzzle_set(puzzle_name);
-            if (!puzzle.length) return;
-            
-            status_update();
-            draw_puzzle();
-        }
+    const [x0, y0] = find_index(puzzle, 0);
+    const [x1, y1] = find_index(puzzle, part.num);
+    let   [x2, y2] = [null, null];
+    if (part.para !== null) [x2, y2] = find_index(puzzle, part.para);
 
-        // Обновление статуса
-        function status_update() {
-            statusLabel.textContent = "Dustin Tight puzzle simulator";
-            
-            let solved = "";
-            let isSolved = true;
-            
-            // Проверяем, решена ли головоломка
-            for (let i = 0; i < puzzle.length; i++) {
-                for (let j = 0; j < puzzle[i].length; j++) {
-                    if (puzzle[i][j] !== puzzle_solved[i][j]) {
-                        isSolved = false;
-                        break;
-                    }
-                }
-                if (!isSolved) break;
-            }
-            
-            if (isSolved) {
-                solved = ". Solved!";
-            }
-            
-            infoLabel.textContent = "Moves: " + moves + solved;
-        }
-
-        // Отрисовка пазла
-        function draw_digit(num, color, x, y, angle) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle * Math.PI / 180);
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = color;
-            ctx.fillText(num.toString(), 0, 0);
-            ctx.restore();
-        }
-
-        function draw_puzzle() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Рисуем фон доски - теперь размер соответствует рамке
-            const shift = 3;
-            const board = {
-                x: board_shift[0] - border_size - shift,
-                y: board_shift[1] - border_size - shift,
-                width: board_size + 2 * border_size + 2 * shift,
-                height: board_size + 2 * border_size + 2 * shift
-            };
-            
-            // Рисуем рамку
-            const border = {
-                x: board_shift[0] - border_size - shift,
-                y: board_shift[1] - border_size - shift,
-                width: board_size + 2 * border_size + 2 * shift,
-                height: board_size + 2 * border_size + 2 * shift
-            };
-            
-            // Рисуем синий фон доски
-            ctx.fillStyle = clBlue;
-            ctx.fillRect(board.x, board.y, board.width, board.height);
-            
-            // Рисуем темно-синюю рамку
-            ctx.strokeStyle = clNavy;
-            ctx.lineWidth = border_size;
-            ctx.strokeRect(border.x, border.y, border.width, border.height);
-            
-            // Рисуем части пазла
-            for (let pos_y = 0; pos_y < puzzle.length; pos_y++) {
-                for (let pos_x = 0; pos_x < puzzle[pos_y].length; pos_x++) {
-                    const part_num = puzzle[pos_y][pos_x];
-                    if (part_num % 2 === 0) continue;
-                    
-                    const part_dict = dicmas_find(puzzle_parts, "num", part_num);
-                    const para = part_dict.para;
-                    
-                    const x1 = (pos_x * 2 + 1) * DISK_RADIUS + board_shift[0];
-                    const y1 = (pos_y * 2 + 1) * DISK_RADIUS + board_shift[1];
-                    
-                    // Рисуем диск
-                    ctx.beginPath();
-                    ctx.arc(x1, y1, DISK_RADIUS - disk_shift, 0, Math.PI * 2);
-                    ctx.fillStyle = part_dict.color;
-                    ctx.fill();
-                    ctx.strokeStyle = clSeaGreen;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    
-                    if (para !== null) {
-                        const [pos_x2, pos_y2] = find_index(puzzle, para);
-                        const x2 = (pos_x2 * 2 + 1) * DISK_RADIUS + board_shift[0];
-                        const y2 = (pos_y2 * 2 + 1) * DISK_RADIUS + board_shift[1];
-                        
-                        // Рисуем второй диск
-                        ctx.beginPath();
-                        ctx.arc(x2, y2, DISK_RADIUS - disk_shift, 0, Math.PI * 2);
-                        ctx.fillStyle = part_dict.color;
-                        ctx.fill();
-                        ctx.strokeStyle = clSeaGreen;
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
-                        
-                        // Рисуем связь между дисками
-                        ctx.beginPath();
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(x2, y2);
-                        ctx.strokeStyle = part_dict.color;
-                        ctx.lineWidth = LINK_SIZE;
-                        ctx.stroke();
-                    }
-                    
-                    // Рисуем цифру на первом диске
-                    draw_digit(part_num, clBlack, x1, y1, part_dict.angle);
-                    
-                    // Рисуем цифру на втором диске, если есть
-                    if (para !== null) {
-                        const [pos_x2, pos_y2] = find_index(puzzle, para);
-                        const x2 = (pos_x2 * 2 + 1) * DISK_RADIUS + board_shift[0];
-                        const y2 = (pos_y2 * 2 + 1) * DISK_RADIUS + board_shift[1];
-                        draw_digit(para, clBlack, x2, y2, part_dict.angle);
-                    }
-                }
-            }
-        }
-
-        // Логика игры
-        function scramble_game(max_move = 1000) {
-            let num_pred = -1;
-            
-            for (let nn = 0; nn < max_move; nn++) {
-                while (true) {
-                    let num;
-                    do {
-                        num = Math.floor(Math.random() * 15) + 1;
-                    } while (num_pred === num);
-                    
-                    const state = slide_part(num);
-                    if (state) {
-                        num_pred = num;
-                        break;
-                    }
-                }
-            }
-            
-            moves = 0;
-            status_update();
-            draw_puzzle();
-        }
-
-        function check_pos_part(x0, y0, x1, y1, x2 = null, y2 = null) {
-            if (y0 === y1) {
-                if (x1 === x0 - 1 || x1 === x0 + 1) {
-                    return 1;
-                }
-            } else if (x0 === x1) {
-                if (y1 === y0 - 1 || y1 === y0 + 1) {
-                    return 1;
-                }
-            }
-            
-            if (x2 !== null && y2 !== null) {
-                if (y0 === y2) {
-                    if (x2 === x0 - 1 || x2 === x0 + 1) {
-                        return 2;
-                    }
-                } else if (x0 === x2) {
-                    if (y2 === y0 - 1 || y2 === y0 + 1) {
-                        return 2;
-                    }
-                }
-            }
-            
-            return 0;
-        }
-
-        function slide_part(num) {
-            if (num === 0) {
-                return false;
-            }
-            
-            let part;
-            if (num % 2 === 1) { // 1,3,...,13,+15
-                part = dicmas_find(puzzle_parts, "num", num);
-            } else { // 2,4,...,14
-                part = dicmas_find(puzzle_parts, "para", num);
-            }
-            
-            const part_num = part.num;
-            const para = part.para;
-            
-            const [x0, y0] = find_index(puzzle, 0);
-            const [x1, y1] = find_index(puzzle, part_num);
-            const [x2, y2] = find_index(puzzle, para);
-            
-            if (part_num === 15) {
-                if (check_pos_part(x0, y0, x1, y1)) {
-                    puzzle[y0][x0] = part_num;
-                    puzzle[y1][x1] = 0;
-                    puzzle_parts_init(puzzle);
-                    return true;
-                }
-            } else {
-                const res = check_pos_part(x0, y0, x1, y1, x2, y2);
-                if (res === 1) {
-                    puzzle[y0][x0] = part_num;
-                    puzzle[y1][x1] = para;
-                    puzzle[y2][x2] = 0;
-                } else if (res === 2) {
-                    puzzle[y0][x0] = para;
-                    puzzle[y2][x2] = part_num;
-                    puzzle[y1][x1] = 0;
-                }
-                
-                if (res) {
-                    puzzle_parts_init(puzzle);
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-
-        function check_and_part(mouseX, mouseY) {
-            if (!((board_shift[0] < mouseX && mouseX < (WIDTH - board_shift[0])) && 
-                  (board_shift[1] < mouseY && mouseY < (HEIGHT - board_shift[1])))) {
-                return null;
-            }
-            
-            let x = Math.floor((mouseX - board_shift[0]) / (2 * DISK_RADIUS));
-            let y = Math.floor((mouseY - board_shift[1]) / (2 * DISK_RADIUS));
-            
-            x = Math.max(0, Math.min(3, x));
-            y = Math.max(0, Math.min(3, y));
-            
-            const num = puzzle[y][x];
-            return num;
-        }
-
-        function rotate_board(direction) {
-            rotate_matrix(puzzle, direction);
+    if (part.num === 15) {
+        if (check_pos_part(x0, y0, x1, y1)) {
+            puzzle[y0][x0] = 15;
+            puzzle[y1][x1] = 0;
             puzzle_parts_init(puzzle);
-            status_update();
-            draw_puzzle();
+            return true;
         }
+        return false;
+    }
+    const res = check_pos_part(x0, y0, x1, y1, x2, y2);
+    if (res === 1) {
+        puzzle[y0][x0] = part.num;
+        puzzle[y1][x1] = part.para;
+        puzzle[y2][x2] = 0;
+    } else if (res === 2) {
+        puzzle[y0][x0] = part.para;
+        puzzle[y2][x2] = part.num;
+        puzzle[y1][x1] = 0;
+    }
+    if (res) { puzzle_parts_init(puzzle); return true; }
+    return false;
+}
 
-        // Обработчики событий
-        function setupEventListeners() {
-            // Выбор пазла
-            puzzleSelect.addEventListener('change', function() {
-                puzzle_name = this.value;
-                init_game(puzzle_name);
-                moves = 0;
-                status_update();
-            });
-            
-            // Кнопки управления (верхние)
-            resetBtn.addEventListener('click', function() {
-                init_game(puzzle_name);
-                moves = 0;
-                status_update();
-            });
-            
-            scrambleBtn.addEventListener('click', function() {
-                scramble_game();
-            });
-            
-            aboutBtn.addEventListener('click', function() {
-                aboutModal.style.display = 'block';
-            });
-            
-            // Кнопки вращения по бокам игрового поля
-            rotateLeftBtn.addEventListener('click', function() {
-                rotate_board(-1);
-            });
-            
-            rotateRightBtn.addEventListener('click', function() {
-                rotate_board(1);
-            });
-            
-            // Закрытие модального окна
-            closeModal.addEventListener('click', function() {
-                aboutModal.style.display = 'none';
-            });
-            
-            window.addEventListener('click', function(event) {
-                if (event.target === aboutModal) {
-                    aboutModal.style.display = 'none';
-                }
-            });
-            
-            // Клик по пазлу
-            canvas.addEventListener('click', function(event) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = event.clientX - rect.left;
-                const mouseY = event.clientY - rect.top;
-                
-                const num = check_and_part(mouseX, mouseY);
-                if (num) {
-                    if (slide_part(num)) {
-                        moves++;
-                        status_update();
-                        draw_puzzle();
-                    }
-                }
-            });
+function check_and_part(mx, my) {
+    if (!(board_shift[0] < mx && mx < (WIDTH - board_shift[0]) &&
+          board_shift[1] < my && my < (HEIGHT - board_shift[1]))) return null;
+    let x = Math.floor((mx - board_shift[0]) / (2 * DISK_RADIUS));
+    let y = Math.floor((my - board_shift[1]) / (2 * DISK_RADIUS));
+    x = Math.max(0, Math.min(3, x));
+    y = Math.max(0, Math.min(3, y));
+    return puzzle[y][x];
+}
+
+/* ================================================================
+   RENDERING
+   ================================================================ */
+function status_update() {
+    let isSolved = true;
+    for (let i = 0; i < 4 && isSolved; i++)
+        for (let j = 0; j < 4; j++)
+            if (puzzle[i][j] !== puzzle_solved[i][j]) { isSolved = false; break; }
+    infoLabel.textContent = "Moves: " + moves + (isSolved ? "  ·  Solved!" : "");
+}
+
+function cellCenter(gx, gy) {
+    return {
+        x: (gx * 2 + 1) * DISK_RADIUS + board_shift[0],
+        y: (gy * 2 + 1) * DISK_RADIUS + board_shift[1]
+    };
+}
+
+function makeDiskGradient(cx, cy, color) {
+    const r = DISK_RADIUS - disk_shift;
+    const grad = ctx.createRadialGradient(
+        cx - r * 0.35, cy - r * 0.35, r * 0.15, cx, cy, r);
+    if (color === clWhite) {
+        grad.addColorStop(0,   '#FFFFFF');
+        grad.addColorStop(0.5, '#EFEFF2');
+        grad.addColorStop(1,   '#B8B8C2');
+    } else {
+        grad.addColorStop(0,   '#9CCAEF');
+        grad.addColorStop(0.5, '#4A90D9');
+        grad.addColorStop(1,   '#1F558C');
+    }
+    return grad;
+}
+
+function draw_digit(num, color, x, y, angleDeg) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angleDeg * Math.PI / 180);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '800 28px system-ui, -apple-system, Segoe UI, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText(num.toString(), 0, 2);
+    ctx.fillStyle = color;
+    ctx.fillText(num.toString(), 0, 0);
+    ctx.restore();
+}
+
+function drawPieceShape(x1, y1, x2, y2, color, angleDeg, num, para) {
+    const r = DISK_RADIUS - disk_shift;
+    const hasPair = (x2 !== null && x2 !== undefined);
+
+    ctx.save();
+    ctx.shadowColor    = 'rgba(10,12,40,0.55)';
+    ctx.shadowBlur     = 12;
+    ctx.shadowOffsetX  = 1.5;
+    ctx.shadowOffsetY  = 5;
+    ctx.fillStyle      = '#000';
+    ctx.strokeStyle    = '#000';
+    ctx.lineCap        = 'round';
+
+    ctx.beginPath(); ctx.arc(x1, y1, r, 0, Math.PI * 2); ctx.fill();
+    if (hasPair) {
+        ctx.beginPath(); ctx.arc(x2, y2, r, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.lineWidth = LINK_SIZE;
+        ctx.stroke();
+    }
+    ctx.restore();
+
+    if (hasPair) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.lineWidth   = LINK_SIZE;
+        ctx.lineCap     = 'round';
+        ctx.strokeStyle = color;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.lineWidth   = LINK_SIZE + 2;
+        ctx.strokeStyle = 'rgba(40,60,90,0.30)';
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.stroke();
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function oneDisk(cx, cy) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fillStyle = makeDiskGradient(cx, cy, color);
+        ctx.fill();
+        ctx.lineWidth   = 2;
+        ctx.strokeStyle = 'rgba(30,50,90,0.55)';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx - r * 0.25, cy - r * 0.30, r * 0.55, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.20)';
+        ctx.fill();
+    }
+    oneDisk(x1, y1);
+    if (hasPair) oneDisk(x2, y2);
+
+    draw_digit(num, clBlack, x1, y1, angleDeg);
+    if (hasPair) draw_digit(para, clBlack, x2, y2, angleDeg);
+}
+
+function drawBoard() {
+    const pad = 4;
+    const bx = board_shift[0] - border_size - pad;
+    const by = board_shift[1] - border_size - pad;
+    const bw = board_size + 2 * border_size + 2 * pad;
+    const bh = board_size + 2 * border_size + 2 * pad;
+    const radius = 22;
+
+    ctx.save();
+    ctx.shadowColor   = 'rgba(10,12,40,0.45)';
+    ctx.shadowBlur    = 32;
+    ctx.shadowOffsetY = 14;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius);
+    else ctx.rect(bx, by, bw, bh);
+    const boardGrad = ctx.createLinearGradient(bx, by, bx + bw, by + bh);
+    boardGrad.addColorStop(0, '#7C7C7C');
+    boardGrad.addColorStop(1, '#4E4E4E');
+    ctx.fillStyle = boardGrad;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius);
+    else ctx.rect(bx, by, bw, bh);
+    ctx.lineWidth   = 3;
+    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+    ctx.stroke();
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx + 3, by + 3, bw - 6, bh - 6, radius - 3);
+    else ctx.rect(bx + 3, by + 3, bw - 6, bh - 6);
+    ctx.lineWidth   = 1.5;
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,0.30)';
+    ctx.lineWidth = 2;
+    for (let i = 1; i < 4; i++) {
+        const gx = board_shift[0] + i * 2 * DISK_RADIUS;
+        const gy = board_shift[1] + i * 2 * DISK_RADIUS;
+        ctx.beginPath(); ctx.moveTo(gx, board_shift[1]); ctx.lineTo(gx, board_shift[1] + board_size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(board_shift[0], gy); ctx.lineTo(board_shift[0] + board_size, gy); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.20)';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+        const gx = board_shift[0] + i * 2 * DISK_RADIUS;
+        const gy = board_shift[1] + i * 2 * DISK_RADIUS;
+        ctx.beginPath(); ctx.moveTo(gx + 1, board_shift[1]); ctx.lineTo(gx + 1, board_shift[1] + board_size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(board_shift[0], gy + 1); ctx.lineTo(board_shift[0] + board_size, gy + 1); ctx.stroke();
+    }
+    ctx.restore();
+}
+
+let animation    = null;
+let animFrameId  = null;
+let boardAnim    = null;
+let boardFrameId = null;
+
+const MOVE_DURATION  = 170;
+const BOARD_DURATION = 300;
+
+function ease(t) { return t * t * (3 - 2 * t); }
+
+function drawAnimatedPiece() {
+    const a = animation;
+    const e = ease(a.progress);
+    const part_dict = dicmas_find(puzzle_parts, "num", a.num);
+    const color = part_dict.color;
+
+    if (a.type === 'translate') {
+        const x1 = a.fromNum.x + a.deltaX * e;
+        const y1 = a.fromNum.y + a.deltaY * e;
+        let x2 = null, y2 = null;
+        if (a.para !== null) {
+            x2 = a.fromPara.x + a.deltaX * e;
+            y2 = a.fromPara.y + a.deltaY * e;
         }
-
-        // Инициализация при загрузке
-        window.onload = function() {
-            init_game(puzzle_name);
-            setupEventListeners();
+        drawPieceShape(x1, y1, x2, y2, color, a.angleStart, a.num, a.para);
+    } else {
+        const theta = a.thetaFinal * e;
+        const c = Math.cos(theta), s = Math.sin(theta);
+        const rot = (px, py) => {
+            const dx = px - a.pivotX, dy = py - a.pivotY;
+            return { x: a.pivotX + dx * c - dy * s,
+                     y: a.pivotY + dx * s + dy * c };
         };
-    </script>
+        const p1 = rot(a.fromNum.x, a.fromNum.y);
+        const p2 = a.para !== null ? rot(a.fromPara.x, a.fromPara.y) : null;
+        const angleDeg = a.angleStart + theta * 180 / Math.PI;
+        drawPieceShape(p1.x, p1.y, p2 ? p2.x : null, p2 ? p2.y : null,
+                       color, angleDeg, a.num, a.para);
+    }
+}
+
+function draw_puzzle() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const rotating = (boardAnim !== null);
+    if (rotating) {
+        const e = ease(boardAnim.progress);
+        const thetaApply = -boardAnim.thetaFinal * (1 - e);
+        ctx.save();
+        ctx.translate(boardAnim.pivotX, boardAnim.pivotY);
+        ctx.rotate(thetaApply);
+        ctx.translate(-boardAnim.pivotX, -boardAnim.pivotY);
+    }
+
+    drawBoard();
+
+    for (let pos_y = 0; pos_y < 4; pos_y++) {
+        for (let pos_x = 0; pos_x < 4; pos_x++) {
+            const part_num = puzzle[pos_y][pos_x];
+            if (part_num === 0) continue;
+            if (part_num % 2 === 0) continue;
+            if (part_num === 15) continue;
+            if (animation && part_num === animation.num) continue;
+
+            const part_dict = dicmas_find(puzzle_parts, "num", part_num);
+            const para = part_dict.para;
+            const c1 = cellCenter(pos_x, pos_y);
+            let c2 = null;
+            if (para !== null) {
+                const [px, py] = find_index(puzzle, para);
+                c2 = cellCenter(px, py);
+            }
+            drawPieceShape(c1.x, c1.y, c2 ? c2.x : null, c2 ? c2.y : null,
+                           part_dict.color, part_dict.angle, part_num, para);
+        }
+    }
+
+    if (rotating) ctx.restore();
+
+    if (!(animation && animation.num === 15)) {
+        const part15 = dicmas_find(puzzle_parts, "num", 15);
+        if (boardAnim) {
+            const t = boardAnim.progress;
+            const e = ease(t);
+            const theta = boardAnim.thetaFinal * e;
+            const c = Math.cos(theta), s = Math.sin(theta);
+            const c15 = cellCenter(boardAnim.oldX15, boardAnim.oldY15);
+            const dx = c15.x - boardAnim.pivotX, dy = c15.y - boardAnim.pivotY;
+            const x15 = boardAnim.pivotX + dx * c - dy * s;
+            const y15 = boardAnim.pivotY + dx * s + dy * c;
+            drawPieceShape(x15, y15, null, null, part15.color, 0, 15, null);
+        } else {
+            const [x15, y15] = find_index(puzzle, 15);
+            const c15 = cellCenter(x15, y15);
+            drawPieceShape(c15.x, c15.y, null, null, part15.color, 0, 15, null);
+        }
+    }
+
+    if (animation) drawAnimatedPiece();
+}
+
+/* ================================================================
+   TILE-MOVE ANIMATION
+   ================================================================ */
+function animationTick(now) {
+    if (!animation) { animFrameId = null; return; }
+    const elapsed = now - animation.startTime;
+    animation.progress = Math.min(1, elapsed / animation.duration);
+    draw_puzzle();
+    if (animation.progress < 1) {
+        animFrameId = requestAnimationFrame(animationTick);
+    } else {
+        const cb = animation.onDone;
+        animation = null;
+        animFrameId = null;
+        draw_puzzle();
+        if (cb) cb();
+    }
+}
+
+function performMove(num, animate, onDone, duration) {
+    if (animation || boardAnim) return false;
+    const dur = (typeof duration === 'number' && duration > 0) ? duration : MOVE_DURATION;
+
+    const thePart = (num % 2 === 1)
+        ? dicmas_find(puzzle_parts, "num", num)
+        : dicmas_find(puzzle_parts, "para", num);
+    if (!thePart) return false;
+
+    const oldState = puzzle.map(r => r.slice());
+    const [nxOld, nyOld] = find_index(oldState, thePart.num);
+    const [hxOld, hyOld] = find_index(oldState, 0);
+    const oldAngle = thePart.angle;
+    let pxOld = null, pyOld = null;
+    if (thePart.para !== null) [pxOld, pyOld] = find_index(oldState, thePart.para);
+
+    if (!slide_part(num)) return false;
+    moves++;
+    status_update();
+
+    if (!animate) {
+        draw_puzzle();
+        if (onDone) onDone();
+        return true;
+    }
+
+    if (thePart.para === null) {
+        const from = cellCenter(nxOld, nyOld);
+        const to   = cellCenter(hxOld, hyOld);
+        animation = {
+            type: 'translate',
+            num: 15, para: null,
+            fromNum: from, fromPara: null,
+            deltaX: to.x - from.x, deltaY: to.y - from.y,
+            angleStart: 0,
+            progress: 0,
+            startTime: performance.now(),
+            duration: dur,
+            onDone
+        };
+        if (!animFrameId) animFrameId = requestAnimationFrame(animationTick);
+        return true;
+    }
+
+    const [hxNew, hyNew] = find_index(puzzle, 0);
+    const res = (hxNew === nxOld && hyNew === nyOld) ? 2 : 1;
+
+    let isTranslation = false;
+    if (res === 1) {
+        if (hxOld === 2 * nxOld - pxOld && hyOld === 2 * nyOld - pyOld) isTranslation = true;
+    } else {
+        if (hxOld === 2 * pxOld - nxOld && hyOld === 2 * pyOld - nyOld) isTranslation = true;
+    }
+
+    const fromNum  = cellCenter(nxOld, nyOld);
+    const fromPara = cellCenter(pxOld, pyOld);
+
+    if (isTranslation) {
+        const from = res === 1 ? fromNum : fromPara;
+        const to   = cellCenter(hxOld, hyOld);
+        animation = {
+            type: 'translate',
+            num: thePart.num, para: thePart.para,
+            fromNum, fromPara,
+            deltaX: to.x - from.x, deltaY: to.y - from.y,
+            angleStart: oldAngle,
+            progress: 0,
+            startTime: performance.now(),
+            duration: dur,
+            onDone
+        };
+        if (!animFrameId) animFrameId = requestAnimationFrame(animationTick);
+        return true;
+    }
+
+    const xs = [nxOld, pxOld, hxOld], ys = [nyOld, pyOld, hyOld];
+    const minX = Math.min.apply(null, xs), minY = Math.min.apply(null, ys);
+    const pivotX = ((minX + 0.5) * 2 + 1) * DISK_RADIUS + board_shift[0];
+    const pivotY = ((minY + 0.5) * 2 + 1) * DISK_RADIUS + board_shift[1];
+
+    const targetX = (res === 1) ? hxOld : pxOld;
+    const targetY = (res === 1) ? hyOld : pyOld;
+    const tc = cellCenter(targetX, targetY);
+
+    const dx = fromNum.x - pivotX, dy = fromNum.y - pivotY;
+    const pX = pivotX - dy, pY = pivotY + dx;
+    const distPlus = Math.hypot(pX - tc.x, pY - tc.y);
+    const thetaFinal = (distPlus < 0.5) ? Math.PI / 2 : -Math.PI / 2;
+
+    animation = {
+        type: 'rotate',
+        num: thePart.num, para: thePart.para,
+        fromNum, fromPara,
+        pivotX, pivotY, thetaFinal,
+        angleStart: oldAngle,
+        progress: 0,
+        startTime: performance.now(),
+        duration: dur,
+        onDone
+    };
+    if (!animFrameId) animFrameId = requestAnimationFrame(animationTick);
+    return true;
+}
+
+function cancelTileAnimation() {
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    animation = null;
+}
+
+/* ================================================================
+   BOARD-ROTATION ANIMATION
+   ================================================================ */
+function boardTick(now) {
+    if (!boardAnim) { boardFrameId = null; return; }
+    const elapsed = now - boardAnim.startTime;
+    boardAnim.progress = Math.min(1, elapsed / boardAnim.duration);
+    draw_puzzle();
+    if (boardAnim.progress < 1) {
+        boardFrameId = requestAnimationFrame(boardTick);
+    } else {
+        const cb = boardAnim.onDone;
+        boardAnim = null;
+        boardFrameId = null;
+        draw_puzzle();
+        if (cb) cb();
+    }
+}
+
+function cancelBoardAnimation() {
+    if (boardFrameId) { cancelAnimationFrame(boardFrameId); boardFrameId = null; }
+    boardAnim = null;
+}
+
+function rotate_board(direction, onDone) {
+    if (animation || boardAnim || _solving) return false;
+
+    const [x15old, y15old] = find_index(puzzle, 15);
+    rotate_matrix(puzzle, direction);
+    puzzle_parts_init(puzzle);
+    status_update();
+
+    boardAnim = {
+        pivotX: board_shift[0] + board_size / 2,
+        pivotY: board_shift[1] + board_size / 2,
+        thetaFinal: direction * Math.PI / 2,
+        oldX15: x15old,
+        oldY15: y15old,
+        progress: 0,
+        startTime: performance.now(),
+        duration: BOARD_DURATION,
+        onDone
+    };
+    if (!boardFrameId) boardFrameId = requestAnimationFrame(boardTick);
+    return true;
+}
+
+/* ================================================================
+   GAME FLOW
+   ================================================================ */
+function init_game(name) {
+    _scrambleId++;
+    cancelTileAnimation();
+    cancelBoardAnimation();
+    puzzle = puzzle_set(name);
+    if (!puzzle.length) return;
+    status_update();
+    draw_puzzle();
+}
+
+function scramble_game(max_move = 1000) {
+    cancelTileAnimation();
+    cancelBoardAnimation();
+
+    const savedPuzzle = puzzle.map(r => r.slice());
+
+    const moves_list = [];
+    let lastPartNum = -1;
+    for (let nn = 0; nn < max_move; nn++) {
+        while (true) {
+            const num = Math.floor(Math.random() * 15) + 1;
+            const part = (num % 2 === 1)
+                ? dicmas_find(puzzle_parts, "num", num)
+                : dicmas_find(puzzle_parts, "para", num);
+            if (!part || part.num === lastPartNum) continue;
+            if (slide_part(num)) {
+                moves_list.push(num);
+                lastPartNum = part.num;
+                break;
+            }
+        }
+    }
+
+    puzzle = savedPuzzle;
+    puzzle_parts_init(puzzle);
+    moves = 0;
+    status_update();
+    draw_puzzle();
+
+    const myId = ++_scrambleId;
+
+    let i = 0;
+    function next() {
+        if (_scrambleId !== myId) return;
+        if (i >= moves_list.length) {
+            finishScramble();
+            return;
+        }
+        let dur;
+        if (i < 5)       dur = MOVE_DURATION / 2;
+        else if (i < 10) dur = MOVE_DURATION / 4;
+        else if (i < 15) dur = MOVE_DURATION / 8;
+        else {
+            for (let k = i; k < moves_list.length; k++) slide_part(moves_list[k]);
+            finishScramble();
+            return;
+        }
+        const moveNum = moves_list[i];
+        i++;
+        performMove(moveNum, true, next, dur);
+    }
+
+    function finishScramble() {
+        if (Math.random() < 0.5) {
+            const dir = Math.random() < 0.5 ? 1 : -1;
+            rotate_matrix(puzzle, dir);
+            puzzle_parts_init(puzzle);
+        }
+        moves = 0;
+        status_update();
+        draw_puzzle();
+    }
+
+    next();
+}
+
+/* ================================================================
+   SOLVER — Web Worker
+   ================================================================ */
+const workerCode = [
+'"use strict";',
+'const SOLVED = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0];',
+'const TARGET_POS = new Array(16);',
+'for (let i = 0; i < 16; i++) TARGET_POS[SOLVED[i]] = i;',
+'const PARTS = [];',
+'for (let n = 1; n <= 15; n += 2) PARTS.push({ num: n, para: n === 15 ? null : n + 1 });',
+'const VALUE_TO_PART = new Array(16).fill(-1);',
+'for (let i = 0; i < PARTS.length; i++) {',
+'    VALUE_TO_PART[PARTS[i].num] = i;',
+'    if (PARTS[i].para !== null) VALUE_TO_PART[PARTS[i].para] = i;',
+'}',
+'const _posBuf = new Array(16);',
+'function manh(a, b) { return Math.abs((a & 3) - (b & 3)) + Math.abs((a >> 2) - (b >> 2)); }',
+'function heuristic(f) {',
+'    for (let i = 0; i < 16; i++) _posBuf[f[i]] = i;',
+'    let s = 0, h1 = 0, h2 = 0, m15 = 0;',
+'    for (let k = 0; k < PARTS.length; k++) {',
+'        const p = PARTS[k];',
+'        const ma = manh(_posBuf[p.num], TARGET_POS[p.num]);',
+'        if (p.para === null) { m15 = ma; continue; }',
+'        const mb = manh(_posBuf[p.para], TARGET_POS[p.para]);',
+'        s += ma + mb; h1 += ma; h2 += mb;',
+'    }',
+'    const h3 = ((s + 1) >> 1) + m15;',
+'    return Math.max(h1 + m15, h2 + m15, h3);',
+'}',
+'function adjacent(a, b) {',
+'    const ax = a & 3, ay = a >> 2, bx = b & 3, by = b >> 2;',
+'    return (ax === bx && (ay - by === 1 || by - ay === 1)) ||',
+'           (ay === by && (ax - bx === 1 || bx - ax === 1));',
+'}',
+'function genMoves(f) {',
+'    const hole = f.indexOf(0);',
+'    const hx = hole & 3, hy = hole >> 2;',
+'    const raw = [];',
+'    if (hx > 0) raw.push(f[hole - 1]);',
+'    if (hx < 3) raw.push(f[hole + 1]);',
+'    if (hy > 0) raw.push(f[hole - 4]);',
+'    if (hy < 3) raw.push(f[hole + 4]);',
+'    const seen = new Array(PARTS.length).fill(false);',
+'    const out = [];',
+'    for (let i = 0; i < raw.length; i++) {',
+'        const v = raw[i];',
+'        if (v === 0) continue;',
+'        const pi = VALUE_TO_PART[v];',
+'        if (pi < 0 || seen[pi]) continue;',
+'        seen[pi] = true;',
+'        out.push(v);',
+'    }',
+'    return out;',
+'}',
+'function applyMove(f, val) {',
+'    const pi = VALUE_TO_PART[val];',
+'    if (pi < 0) return false;',
+'    const part = PARTS[pi];',
+'    const hole = f.indexOf(0);',
+'    const pn = f.indexOf(part.num);',
+'    if (part.para === null) {',
+'        if (adjacent(hole, pn)) { f[hole] = part.num; f[pn] = 0; return true; }',
+'        return false;',
+'    }',
+'    const pp = f.indexOf(part.para);',
+'    if (adjacent(hole, pn)) { f[hole] = part.num; f[pn] = part.para; f[pp] = 0; return true; }',
+'    if (adjacent(hole, pp)) { f[hole] = part.para; f[pp] = part.num; f[pn] = 0; return true; }',
+'    return false;',
+'}',
+'function rotateFlatCW(f) {',
+'    const n = new Array(16);',
+'    for (let r = 0; r < 4; r++)',
+'        for (let c = 0; c < 4; c++)',
+'            n[r*4+c] = f[(3-c)*4 + r];',
+'    return n;',
+'}',
+'function rotateFlatCCW(f) {',
+'    const n = new Array(16);',
+'    for (let r = 0; r < 4; r++)',
+'        for (let c = 0; c < 4; c++)',
+'            n[r*4+c] = f[c*4 + (3-r)];',
+'    return n;',
+'}',
+'function solveIDA(startFlat, weight, maxNodes, onProgress) {',
+'    const startH = heuristic(startFlat);',
+'    if (startH === 0) return { sol: [], nodes: 0, maxG: 0 };',
+'    const path = [];',
+'    let nodes = 0, maxG = 0, aborted = false;',
+'    let bound = startH * weight;',
+'    const t0 = Date.now();',
+'    function search(f, g, lastPart, bl) {',
+'        if (aborted) return Infinity;',
+'        nodes++;',
+'        if (nodes > maxNodes) { aborted = true; return Infinity; }',
+'        if ((nodes & 0xFFFF) === 0 && onProgress)',
+'            onProgress(nodes, maxG, Date.now() - t0, weight);',
+'        const h = heuristic(f);',
+'        const fval = g + h * weight;',
+'        if (fval > bl) return fval;',
+'        if (h === 0) return -1;',
+'        if (g > maxG) maxG = g;',
+'        const ms = genMoves(f);',
+'        const order = [];',
+'        for (let i = 0; i < ms.length; i++) {',
+'            const v = ms[i];',
+'            const pi = VALUE_TO_PART[v];',
+'            if (pi === lastPart) continue;',
+'            const nf = f.slice();',
+'            if (!applyMove(nf, v)) continue;',
+'            order.push({ v: v, pi: pi, h: heuristic(nf), st: nf });',
+'        }',
+'        order.sort(function(a, b) { return a.h - b.h; });',
+'        let min = Infinity;',
+'        for (let i = 0; i < order.length; i++) {',
+'            path.push(order[i].v);',
+'            const t = search(order[i].st, g + 1, order[i].pi, bl);',
+'            if (t === -1) return -1;',
+'            path.pop();',
+'            if (t < min) min = t;',
+'            if (aborted) return Infinity;',
+'        }',
+'        return min;',
+'    }',
+'    while (!aborted) {',
+'        const t = search(startFlat.slice(), 0, -1, bound);',
+'        if (t === -1) return { sol: path.slice(), nodes: nodes, maxG: maxG };',
+'        if (t === Infinity) break;',
+'        bound = t;',
+'    }',
+'    return null;',
+'}',
+'function trySolvePass(flat, weight, cap, onProgress) {',
+'    let r = solveIDA(flat, weight, cap, onProgress);',
+'    if (r) return { sol: r.sol, rotation: 0, nodes: r.nodes, maxG: r.maxG };',
+'    r = solveIDA(rotateFlatCW(flat), weight, cap, onProgress);',
+'    if (r) return { sol: r.sol, rotation: 1, nodes: r.nodes, maxG: r.maxG };',
+'    r = solveIDA(rotateFlatCCW(flat), weight, cap, onProgress);',
+'    if (r) return { sol: r.sol, rotation: 3, nodes: r.nodes, maxG: r.maxG };',
+'    return null;',
+'}',
+'function solveWithEscalation(startFlat, baseWeight, onProgress) {',
+'    const attempts = [',
+'        { w: baseWeight,     cap:  4000000 },',
+'        { w: baseWeight * 2, cap:  8000000 },',
+'        { w: baseWeight * 4, cap: 16000000 },',
+'        { w: baseWeight * 8, cap: 32000000 }',
+'    ];',
+'    for (let i = 0; i < attempts.length; i++) {',
+'        const a = attempts[i];',
+'        const r = trySolvePass(startFlat, a.w, a.cap, onProgress);',
+'        if (r) return r;',
+'    }',
+'    return null;',
+'}',
+'self.onmessage = function(e) {',
+'    const flat = e.data.flat;',
+'    const weight = e.data.weight;',
+'    const t0 = Date.now();',
+'    const result = solveWithEscalation(flat, weight, function(nodes, maxG, time, w) {',
+'        self.postMessage({ type: "progress", nodes: nodes, maxG: maxG, time: time, weight: w });',
+'    });',
+'    const elapsed = Date.now() - t0;',
+'    if (result) {',
+'        self.postMessage({ type: "done", sol: result.sol, rotation: result.rotation,',
+'                           nodes: result.nodes, maxG: result.maxG,',
+'                           weight: weight, time: elapsed });',
+'    } else {',
+'        self.postMessage({ type: "done", sol: null, rotation: 0, nodes: 0, maxG: 0,',
+'                           weight: weight, time: elapsed });',
+'    }',
+'};'
+].join('\n');
+
+const workerUrl = URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' }));
+let solverWorker = null;
+let _solving = false;
+let _stopRequested = false;
+
+const SOLVED_FLAT = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0];
+
+function flatFromPuzzle() {
+    const flat = [];
+    for (let y = 0; y < 4; y++)
+        for (let x = 0; x < 4; x++) flat.push(puzzle[y][x]);
+    return flat;
+}
+function flatSolved(flat) {
+    for (let i = 0; i < 16; i++) if (flat[i] !== SOLVED_FLAT[i]) return false;
+    return true;
+}
+
+function setSolveButtonSolving(on) {
+    if (on) {
+        solveBtn.textContent = 'Stop';
+        solveBtn.classList.remove('primary');
+        solveBtn.classList.add('danger');
+    } else {
+        solveBtn.textContent = 'Solve';
+        solveBtn.classList.remove('danger');
+        solveBtn.classList.add('primary');
+    }
+}
+
+function applySolution(sol, rotation) {
+    function playTiles() {
+        let i = 0;
+        function next() {
+            if (_stopRequested) return;
+            if (i >= sol.length) {
+                _solving = false;
+                _stopRequested = false;
+                setSolveButtonSolving(false);
+                status_update();
+                return;
+            }
+            performMove(sol[i++], true, next);
+        }
+        next();
+    }
+
+    if (rotation) {
+        const dir = (rotation === 1) ? 1 : -1;
+        const [x15old, y15old] = find_index(puzzle, 15);
+        rotate_matrix(puzzle, dir);
+        puzzle_parts_init(puzzle);
+        status_update();
+        boardAnim = {
+            pivotX: board_shift[0] + board_size / 2,
+            pivotY: board_shift[1] + board_size / 2,
+            thetaFinal: dir * Math.PI / 2,
+            oldX15: x15old,
+            oldY15: y15old,
+            progress: 0,
+            startTime: performance.now(),
+            duration: BOARD_DURATION,
+            onDone: function () {
+                if (_stopRequested) {
+                    _solving = false;
+                    _stopRequested = false;
+                    setSolveButtonSolving(false);
+                    status_update();
+                    return;
+                }
+                playTiles();
+            }
+        };
+        if (!boardFrameId) boardFrameId = requestAnimationFrame(boardTick);
+    } else {
+        playTiles();
+    }
+}
+
+function cancelSolving() {
+    _scrambleId++;
+    const wasSolving = _solving;
+    if (solverWorker) { solverWorker.terminate(); solverWorker = null; }
+    _solving = false;
+    _stopRequested = false;
+    setSolveButtonSolving(false);
+    if (wasSolving && (animation || boardAnim)) {
+        cancelTileAnimation();
+        cancelBoardAnimation();
+        draw_puzzle();
+    }
+}
+
+function stopSolve() {
+    if (!_solving) return;
+    _stopRequested = true;
+    if (solverWorker) { solverWorker.terminate(); solverWorker = null; }
+    if (animation) cancelTileAnimation();
+    if (boardAnim) cancelBoardAnimation();
+    draw_puzzle();
+    _solving = false;
+    _stopRequested = false;
+    setSolveButtonSolving(false);
+    status_update();
+    solverInfo.textContent = 'Stopped by user.';
+}
+
+function doSolve() {
+    if (_solving) { stopSolve(); return; }
+    if (animation || boardAnim) return;
+
+    const flat = flatFromPuzzle();
+    if (flatSolved(flat)) { solverInfo.textContent = 'Already solved.'; return; }
+    const weight = Math.max(1, parseFloat(weightInput.value) || 3);
+
+    _solving = true;
+    _stopRequested = false;
+    _scrambleId++;
+    setSolveButtonSolving(true);
+    solverInfo.textContent = 'Solver started (base W = ' + weight + ')…';
+
+    if (solverWorker) solverWorker.terminate();
+    solverWorker = new Worker(workerUrl);
+
+    solverWorker.onmessage = function (e) {
+        const msg = e.data;
+        if (_stopRequested) return;
+        if (msg.type === 'progress') {
+            solverInfo.textContent =
+                'Explored nodes: ' + msg.nodes.toLocaleString() +
+                '   |   max depth: ' + msg.maxG +
+                '   |   time: ' + (msg.time / 1000).toFixed(1) + ' s' +
+                '   |   W = ' + msg.weight;
+            return;
+        }
+        if (msg.type === 'done') {
+            if (!msg.sol) {
+                solverInfo.textContent =
+                    'Solver gave up.   Nodes: ' + msg.nodes.toLocaleString() +
+                    '   |   depth: ' + msg.maxG +
+                    '   |   time: ' + (msg.time / 1000).toFixed(1) + ' s' +
+                    '   |   last W = ' + msg.weight;
+                _solving = false;
+                _stopRequested = false;
+                setSolveButtonSolving(false);
+                return;
+            }
+            let rotTxt = '';
+            if (msg.rotation === 1) rotTxt = ' + rotate 90°CW';
+            else if (msg.rotation === 3) rotTxt = ' + rotate 90°CCW';
+            solverInfo.textContent =
+                'SOLUTION FOUND: ' + msg.sol.length + ' moves' + rotTxt +
+                '   |   nodes: ' + msg.nodes.toLocaleString() +
+                '   |   depth: ' + msg.maxG +
+                '   |   time: ' + (msg.time / 1000).toFixed(1) + ' s' +
+                '   |   W = ' + msg.weight;
+            applySolution(msg.sol, msg.rotation);
+        }
+    };
+    solverWorker.onerror = function (err) {
+        solverInfo.textContent = 'Worker error: ' + err.message;
+        _solving = false;
+        _stopRequested = false;
+        setSolveButtonSolving(false);
+    };
+    solverWorker.postMessage({ flat: flat, weight: weight });
+}
+
+/* ================================================================
+   EVENT LISTENERS
+   ================================================================ */
+function setupEventListeners() {
+    puzzleSelect.addEventListener('change', function () {
+        cancelSolving();
+        puzzle_name = this.value;
+        init_game(puzzle_name);
+        moves = 0;
+        status_update();
+        solverInfo.textContent = '';
+    });
+    resetBtn.addEventListener('click', function () {
+        cancelSolving();
+        init_game(puzzle_name);
+        moves = 0;
+        status_update();
+        solverInfo.textContent = '';
+    });
+    scrambleBtn.addEventListener('click', function () {
+        cancelSolving();
+        scramble_game();
+        solverInfo.textContent = '';
+    });
+    solveBtn.addEventListener('click', doSolve);
+    aboutBtn.addEventListener('click', function () { aboutModal.style.display = 'block'; });
+    rotateLeftBtn.addEventListener('click', function () {
+        if (animation || boardAnim || _solving) return;
+        rotate_board(-1);
+    });
+    rotateRightBtn.addEventListener('click', function () {
+        if (animation || boardAnim || _solving) return;
+        rotate_board(1);
+    });
+    closeModal.addEventListener('click', function () { aboutModal.style.display = 'none'; });
+    window.addEventListener('click', function (event) {
+        if (event.target === aboutModal) aboutModal.style.display = 'none';
+    });
+    canvas.addEventListener('click', function (event) {
+        if (_solving || animation || boardAnim) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const mx = (event.clientX - rect.left) * scaleX;
+        const my = (event.clientY - rect.top)  * scaleY;
+        const num = check_and_part(mx, my);
+        if (num) performMove(num, true);
+    });
+}
+
+window.onload = function () {
+    init_game(puzzle_name);
+    setupEventListeners();
+};
+</script>
 </body>
 </html>
