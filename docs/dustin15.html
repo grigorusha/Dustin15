@@ -793,9 +793,7 @@ function cancelBoardAnimation() {
     boardAnim = null;
 }
 
-function rotate_board(direction, onDone) {
-    if (animation || boardAnim || _solving) return false;
-
+function animate_board_rotation(direction, onDone) {
     const [x15old, y15old] = find_index(puzzle, 15);
     rotate_matrix(puzzle, direction);
     puzzle_parts_init(puzzle);
@@ -814,6 +812,11 @@ function rotate_board(direction, onDone) {
     };
     if (!boardFrameId) boardFrameId = requestAnimationFrame(boardTick);
     return true;
+}
+
+function rotate_board(direction) {
+    if (animation || boardAnim || _solving) return false;
+    return animate_board_rotation(direction, null);
 }
 
 /* ================================================================
@@ -897,12 +900,36 @@ function scramble_game(max_move = 1000) {
 
 /* ================================================================
    SOLVER — Web Worker
-   ================================================================ */
+   ================================================================
+   Ключевое:
+     timer.t0       — один на всю сессию (для time в статусе)
+     counter.nodes  — общий счётчик для отображения (растёт сквозь все попытки)
+     counter.maxG   — общая максимальная глубина
+     nodesThisRun   — ЛОКАЛЬНЫЙ лимит на одну попытку (обнуляется внутри solveIDA).
+                       Именно он сравнивается с maxNodes, чтобы каждый новый
+                       запуск (W, 2W, 4W, 8W / SOLVED, CW, CCW) получал полный cap.
+*/
 const workerCode = [
 '"use strict";',
 'const SOLVED = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0];',
-'const TARGET_POS = new Array(16);',
-'for (let i = 0; i < 16; i++) TARGET_POS[SOLVED[i]] = i;',
+'function rotateFlatCW(f) {',
+'    const n = new Array(16);',
+'    for (let r = 0; r < 4; r++)',
+'        for (let c = 0; c < 4; c++)',
+'            n[r*4+c] = f[(3-c)*4 + r];',
+'    return n;',
+'}',
+'function rotateFlatCCW(f) {',
+'    const n = new Array(16);',
+'    for (let r = 0; r < 4; r++)',
+'        for (let c = 0; c < 4; c++)',
+'            n[r*4+c] = f[c*4 + (3-r)];',
+'    return n;',
+'}',
+'const TARGETS = {};',
+'TARGETS[0] = SOLVED.slice();',
+'TARGETS[1] = rotateFlatCW(SOLVED);',
+'TARGETS[3] = rotateFlatCCW(SOLVED);',
 'const PARTS = [];',
 'for (let n = 1; n <= 15; n += 2) PARTS.push({ num: n, para: n === 15 ? null : n + 1 });',
 'const VALUE_TO_PART = new Array(16).fill(-1);',
@@ -912,18 +939,23 @@ const workerCode = [
 '}',
 'const _posBuf = new Array(16);',
 'function manh(a, b) { return Math.abs((a & 3) - (b & 3)) + Math.abs((a >> 2) - (b >> 2)); }',
-'function heuristic(f) {',
+'function heuristic(f, targetPos) {',
 '    for (let i = 0; i < 16; i++) _posBuf[f[i]] = i;',
 '    let s = 0, h1 = 0, h2 = 0, m15 = 0;',
 '    for (let k = 0; k < PARTS.length; k++) {',
 '        const p = PARTS[k];',
-'        const ma = manh(_posBuf[p.num], TARGET_POS[p.num]);',
+'        const ma = manh(_posBuf[p.num], targetPos[p.num]);',
 '        if (p.para === null) { m15 = ma; continue; }',
-'        const mb = manh(_posBuf[p.para], TARGET_POS[p.para]);',
+'        const mb = manh(_posBuf[p.para], targetPos[p.para]);',
 '        s += ma + mb; h1 += ma; h2 += mb;',
 '    }',
 '    const h3 = ((s + 1) >> 1) + m15;',
 '    return Math.max(h1 + m15, h2 + m15, h3);',
+'}',
+'function buildTargetPos(targetFlat) {',
+'    const tp = new Array(16);',
+'    for (let i = 0; i < 16; i++) tp[targetFlat[i]] = i;',
+'    return tp;',
 '}',
 'function adjacent(a, b) {',
 '    const ax = a & 3, ay = a >> 2, bx = b & 3, by = b >> 2;',
@@ -965,38 +997,27 @@ const workerCode = [
 '    if (adjacent(hole, pp)) { f[hole] = part.para; f[pp] = part.num; f[pn] = 0; return true; }',
 '    return false;',
 '}',
-'function rotateFlatCW(f) {',
-'    const n = new Array(16);',
-'    for (let r = 0; r < 4; r++)',
-'        for (let c = 0; c < 4; c++)',
-'            n[r*4+c] = f[(3-c)*4 + r];',
-'    return n;',
-'}',
-'function rotateFlatCCW(f) {',
-'    const n = new Array(16);',
-'    for (let r = 0; r < 4; r++)',
-'        for (let c = 0; c < 4; c++)',
-'            n[r*4+c] = f[c*4 + (3-r)];',
-'    return n;',
-'}',
-'function solveIDA(startFlat, weight, maxNodes, onProgress) {',
-'    const startH = heuristic(startFlat);',
+'function solveIDA(startFlat, weight, maxNodes, targetFlat, onProgress, timer, counter) {',
+'    const targetPos = buildTargetPos(targetFlat);',
+'    const startH = heuristic(startFlat, targetPos);',
 '    if (startH === 0) return { sol: [], nodes: 0, maxG: 0 };',
 '    const path = [];',
-'    let nodes = 0, maxG = 0, aborted = false;',
+'    let maxG = 0, aborted = false;',
+'    let nodesThisRun = 0;   /* локальный лимит для ЭТОЙ попытки */',
 '    let bound = startH * weight;',
-'    const t0 = Date.now();',
 '    function search(f, g, lastPart, bl) {',
 '        if (aborted) return Infinity;',
-'        nodes++;',
-'        if (nodes > maxNodes) { aborted = true; return Infinity; }',
-'        if ((nodes & 0xFFFF) === 0 && onProgress)',
-'            onProgress(nodes, maxG, Date.now() - t0, weight);',
-'        const h = heuristic(f);',
+'        nodesThisRun++;',
+'        counter.nodes++;',
+'        if (nodesThisRun > maxNodes) { aborted = true; return Infinity; }',
+'        if ((counter.nodes & 0xFFFF) === 0 && onProgress)',
+'            onProgress(counter.nodes, counter.maxG, Date.now() - timer.t0, weight);',
+'        const h = heuristic(f, targetPos);',
 '        const fval = g + h * weight;',
 '        if (fval > bl) return fval;',
 '        if (h === 0) return -1;',
 '        if (g > maxG) maxG = g;',
+'        if (g > counter.maxG) counter.maxG = g;',
 '        const ms = genMoves(f);',
 '        const order = [];',
 '        for (let i = 0; i < ms.length; i++) {',
@@ -1005,7 +1026,7 @@ const workerCode = [
 '            if (pi === lastPart) continue;',
 '            const nf = f.slice();',
 '            if (!applyMove(nf, v)) continue;',
-'            order.push({ v: v, pi: pi, h: heuristic(nf), st: nf });',
+'            order.push({ v: v, pi: pi, h: heuristic(nf, targetPos), st: nf });',
 '        }',
 '        order.sort(function(a, b) { return a.h - b.h; });',
 '        let min = Infinity;',
@@ -1021,49 +1042,52 @@ const workerCode = [
 '    }',
 '    while (!aborted) {',
 '        const t = search(startFlat.slice(), 0, -1, bound);',
-'        if (t === -1) return { sol: path.slice(), nodes: nodes, maxG: maxG };',
+'        if (t === -1) return { sol: path.slice(), nodes: counter.nodes, maxG: maxG };',
 '        if (t === Infinity) break;',
 '        bound = t;',
 '    }',
 '    return null;',
 '}',
-'function trySolvePass(flat, weight, cap, onProgress) {',
-'    let r = solveIDA(flat, weight, cap, onProgress);',
-'    if (r) return { sol: r.sol, rotation: 0, nodes: r.nodes, maxG: r.maxG };',
-'    r = solveIDA(rotateFlatCW(flat), weight, cap, onProgress);',
-'    if (r) return { sol: r.sol, rotation: 1, nodes: r.nodes, maxG: r.maxG };',
-'    r = solveIDA(rotateFlatCCW(flat), weight, cap, onProgress);',
-'    if (r) return { sol: r.sol, rotation: 3, nodes: r.nodes, maxG: r.maxG };',
+'function trySolvePass(flat, weight, cap, onProgress, timer, counter) {',
+'    let r = solveIDA(flat, weight, cap, TARGETS[0], onProgress, timer, counter);',
+'    if (r) return { sol: r.sol, rotation: 0, nodes: counter.nodes, maxG: counter.maxG };',
+'    r = solveIDA(flat, weight, cap, TARGETS[1], onProgress, timer, counter);',
+'    if (r) return { sol: r.sol, rotation: -1, nodes: counter.nodes, maxG: counter.maxG };',
+'    r = solveIDA(flat, weight, cap, TARGETS[3], onProgress, timer, counter);',
+'    if (r) return { sol: r.sol, rotation: 1, nodes: counter.nodes, maxG: counter.maxG };',
 '    return null;',
 '}',
-'function solveWithEscalation(startFlat, baseWeight, onProgress) {',
+'function solveWithEscalation(startFlat, baseWeight, onProgress, timer) {',
 '    const attempts = [',
 '        { w: baseWeight,     cap:  4000000 },',
 '        { w: baseWeight * 2, cap:  8000000 },',
 '        { w: baseWeight * 4, cap: 16000000 },',
 '        { w: baseWeight * 8, cap: 32000000 }',
 '    ];',
+'    const counter = { nodes: 0, maxG: 0 };',
 '    for (let i = 0; i < attempts.length; i++) {',
 '        const a = attempts[i];',
-'        const r = trySolvePass(startFlat, a.w, a.cap, onProgress);',
+'        const r = trySolvePass(startFlat, a.w, a.cap, onProgress, timer, counter);',
 '        if (r) return r;',
 '    }',
-'    return null;',
+'    return { sol: null, rotation: 0, nodes: counter.nodes, maxG: counter.maxG };',
 '}',
 'self.onmessage = function(e) {',
 '    const flat = e.data.flat;',
 '    const weight = e.data.weight;',
-'    const t0 = Date.now();',
+'    const timer = { t0: Date.now() };',
 '    const result = solveWithEscalation(flat, weight, function(nodes, maxG, time, w) {',
 '        self.postMessage({ type: "progress", nodes: nodes, maxG: maxG, time: time, weight: w });',
-'    });',
-'    const elapsed = Date.now() - t0;',
-'    if (result) {',
+'    }, timer);',
+'    const elapsed = Date.now() - timer.t0;',
+'    if (result && result.sol) {',
 '        self.postMessage({ type: "done", sol: result.sol, rotation: result.rotation,',
 '                           nodes: result.nodes, maxG: result.maxG,',
 '                           weight: weight, time: elapsed });',
 '    } else {',
-'        self.postMessage({ type: "done", sol: null, rotation: 0, nodes: 0, maxG: 0,',
+'        const nodes = (result && result.nodes) || 0;',
+'        const maxG  = (result && result.maxG)  || 0;',
+'        self.postMessage({ type: "done", sol: null, rotation: 0, nodes: nodes, maxG: maxG,',
 '                           weight: weight, time: elapsed });',
 '    }',
 '};'
@@ -1100,52 +1124,36 @@ function setSolveButtonSolving(on) {
 }
 
 function applySolution(sol, rotation) {
-    function playTiles() {
-        let i = 0;
-        function next() {
-            if (_stopRequested) return;
-            if (i >= sol.length) {
-                _solving = false;
-                _stopRequested = false;
-                setSolveButtonSolving(false);
-                status_update();
-                return;
-            }
-            performMove(sol[i++], true, next);
+    function finishWithRotation() {
+        if (_stopRequested) {
+            _solving = false;
+            _stopRequested = false;
+            setSolveButtonSolving(false);
+            status_update();
+            return;
         }
-        next();
+        if (!rotation) {
+            _solving = false;
+            _stopRequested = false;
+            setSolveButtonSolving(false);
+            status_update();
+            return;
+        }
+        animate_board_rotation(rotation, function () {
+            _solving = false;
+            _stopRequested = false;
+            setSolveButtonSolving(false);
+            status_update();
+        });
     }
 
-    if (rotation) {
-        const dir = (rotation === 1) ? 1 : -1;
-        const [x15old, y15old] = find_index(puzzle, 15);
-        rotate_matrix(puzzle, dir);
-        puzzle_parts_init(puzzle);
-        status_update();
-        boardAnim = {
-            pivotX: board_shift[0] + board_size / 2,
-            pivotY: board_shift[1] + board_size / 2,
-            thetaFinal: dir * Math.PI / 2,
-            oldX15: x15old,
-            oldY15: y15old,
-            progress: 0,
-            startTime: performance.now(),
-            duration: BOARD_DURATION,
-            onDone: function () {
-                if (_stopRequested) {
-                    _solving = false;
-                    _stopRequested = false;
-                    setSolveButtonSolving(false);
-                    status_update();
-                    return;
-                }
-                playTiles();
-            }
-        };
-        if (!boardFrameId) boardFrameId = requestAnimationFrame(boardTick);
-    } else {
-        playTiles();
+    let i = 0;
+    function playNextTile() {
+        if (_stopRequested) return;
+        if (i >= sol.length) { finishWithRotation(); return; }
+        performMove(sol[i++], true, playNextTile);
     }
+    playNextTile();
 }
 
 function cancelSolving() {
@@ -1217,8 +1225,8 @@ function doSolve() {
                 return;
             }
             let rotTxt = '';
-            if (msg.rotation === 1) rotTxt = ' + rotate 90°CW';
-            else if (msg.rotation === 3) rotTxt = ' + rotate 90°CCW';
+            if (msg.rotation === 1)  rotTxt = ' + rotate 90°CW at the end';
+            if (msg.rotation === -1) rotTxt = ' + rotate 90°CCW at the end';
             solverInfo.textContent =
                 'SOLUTION FOUND: ' + msg.sol.length + ' moves' + rotTxt +
                 '   |   nodes: ' + msg.nodes.toLocaleString() +
