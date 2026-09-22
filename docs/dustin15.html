@@ -158,6 +158,9 @@
             <label class="weight-field" title="Heuristic weight: 1 = optimal but slow, higher = faster but longer solutions">
                 W: <input type="number" id="weight-input" value="3" min="1" max="50" step="0.5">
             </label>
+            <label class="weight-field" title="Randomness of the solver: 0 = deterministic greedy order, higher = more varied solutions (may be longer)">
+                R: <input type="number" id="jitter-input" value="2.5" min="0" max="20" step="0.5">
+            </label>
         </div>
 
         <div class="status" id="info-label">Moves: 0</div>
@@ -179,7 +182,8 @@
                 <a href="https://twistypuzzles.com/forum/viewtopic.php?t=38581" target="_blank">thread on forum TP.com</a></p>
             <p>Grigorusha Simulators Git:
                 <a href="https://github.com/grigorusha/dustin" target="_blank">github.com/grigorusha/dustin</a></p>
-            <p style="color:#555;">Solver: Weighted IDA* in a Web Worker.</p>
+            <p style="color:#555;">Solver: Weighted IDA* in a Web Worker.
+                R &gt; 0 adds controlled randomness, so the same position can be solved differently each time.</p>
         </div>
     </div>
 
@@ -238,6 +242,7 @@ const rotateRightBtn = document.getElementById('rotate-right-btn');
 const aboutModal   = document.getElementById('about-modal');
 const closeModal   = document.querySelector('.close');
 const weightInput  = document.getElementById('weight-input');
+const jitterInput  = document.getElementById('jitter-input');
 
 canvas.width  = WIDTH;
 canvas.height = HEIGHT;
@@ -899,15 +904,14 @@ function scramble_game(max_move = 1000) {
 }
 
 /* ================================================================
-   SOLVER — Web Worker
+   SOLVER — Web Worker (Weighted IDA* + controlled randomness)
    ================================================================
-   Ключевое:
-     timer.t0       — один на всю сессию (для time в статусе)
-     counter.nodes  — общий счётчик для отображения (растёт сквозь все попытки)
-     counter.maxG   — общая максимальная глубина
-     nodesThisRun   — ЛОКАЛЬНЫЙ лимит на одну попытку (обнуляется внутри solveIDA).
-                       Именно он сравнивается с maxNodes, чтобы каждый новый
-                       запуск (W, 2W, 4W, 8W / SOLVED, CW, CCW) получал полный cap.
+   Randomness sources:
+     1) `jitter`     — noise added to child heuristic before ordering.
+                       Jitter=0 → strict greedy (deterministic-ish).
+                       Jitter=2.5 → neighbors with Δh ≤ 2 can swap order.
+     2) Random tie-break via `.rand` field.
+     3) Random target order in trySolvePass.
 */
 const workerCode = [
 '"use strict";',
@@ -997,13 +1001,13 @@ const workerCode = [
 '    if (adjacent(hole, pp)) { f[hole] = part.para; f[pp] = part.num; f[pn] = 0; return true; }',
 '    return false;',
 '}',
-'function solveIDA(startFlat, weight, maxNodes, targetFlat, onProgress, timer, counter) {',
+'function solveIDA(startFlat, weight, maxNodes, targetFlat, onProgress, timer, counter, jitter) {',
 '    const targetPos = buildTargetPos(targetFlat);',
 '    const startH = heuristic(startFlat, targetPos);',
 '    if (startH === 0) return { sol: [], nodes: 0, maxG: 0 };',
 '    const path = [];',
 '    let maxG = 0, aborted = false;',
-'    let nodesThisRun = 0;   /* локальный лимит для ЭТОЙ попытки */',
+'    let nodesThisRun = 0;',
 '    let bound = startH * weight;',
 '    function search(f, g, lastPart, bl) {',
 '        if (aborted) return Infinity;',
@@ -1026,9 +1030,15 @@ const workerCode = [
 '            if (pi === lastPart) continue;',
 '            const nf = f.slice();',
 '            if (!applyMove(nf, v)) continue;',
-'            order.push({ v: v, pi: pi, h: heuristic(nf, targetPos), st: nf });',
+'            const hChild = heuristic(nf, targetPos);',
+'            const noisy = hChild + (Math.random() - 0.5) * jitter;',
+'            order.push({ v: v, pi: pi, h: noisy, rand: Math.random(), st: nf });',
 '        }',
-'        order.sort(function(a, b) { return a.h - b.h; });',
+'        order.sort(function(a, b) {',
+'            const d = a.h - b.h;',
+'            if (d !== 0) return d;',
+'            return a.rand - b.rand;',
+'        });',
 '        let min = Infinity;',
 '        for (let i = 0; i < order.length; i++) {',
 '            path.push(order[i].v);',
@@ -1048,16 +1058,27 @@ const workerCode = [
 '    }',
 '    return null;',
 '}',
-'function trySolvePass(flat, weight, cap, onProgress, timer, counter) {',
-'    let r = solveIDA(flat, weight, cap, TARGETS[0], onProgress, timer, counter);',
-'    if (r) return { sol: r.sol, rotation: 0, nodes: counter.nodes, maxG: counter.maxG };',
-'    r = solveIDA(flat, weight, cap, TARGETS[1], onProgress, timer, counter);',
-'    if (r) return { sol: r.sol, rotation: -1, nodes: counter.nodes, maxG: counter.maxG };',
-'    r = solveIDA(flat, weight, cap, TARGETS[3], onProgress, timer, counter);',
-'    if (r) return { sol: r.sol, rotation: 1, nodes: counter.nodes, maxG: counter.maxG };',
+'function shuffledTargets() {',
+'    const t = [0, 1, 3];',
+'    for (let i = t.length - 1; i > 0; i--) {',
+'        const j = Math.floor(Math.random() * (i + 1));',
+'        const tmp = t[i]; t[i] = t[j]; t[j] = tmp;',
+'    }',
+'    return t;',
+'}',
+'function trySolvePass(flat, weight, cap, onProgress, timer, counter, jitter) {',
+'    const ts = shuffledTargets();',
+'    for (let k = 0; k < ts.length; k++) {',
+'        const t = ts[k];',
+'        const r = solveIDA(flat, weight, cap, TARGETS[t], onProgress, timer, counter, jitter);',
+'        if (r) {',
+'            const rotation = (t === 0) ? 0 : (t === 1 ? -1 : 1);',
+'            return { sol: r.sol, rotation: rotation, nodes: counter.nodes, maxG: counter.maxG };',
+'        }',
+'    }',
 '    return null;',
 '}',
-'function solveWithEscalation(startFlat, baseWeight, onProgress, timer) {',
+'function solveWithEscalation(startFlat, baseWeight, onProgress, timer, jitter) {',
 '    const attempts = [',
 '        { w: baseWeight,     cap:  4000000 },',
 '        { w: baseWeight * 2, cap:  8000000 },',
@@ -1067,7 +1088,7 @@ const workerCode = [
 '    const counter = { nodes: 0, maxG: 0 };',
 '    for (let i = 0; i < attempts.length; i++) {',
 '        const a = attempts[i];',
-'        const r = trySolvePass(startFlat, a.w, a.cap, onProgress, timer, counter);',
+'        const r = trySolvePass(startFlat, a.w, a.cap, onProgress, timer, counter, jitter);',
 '        if (r) return r;',
 '    }',
 '    return { sol: null, rotation: 0, nodes: counter.nodes, maxG: counter.maxG };',
@@ -1075,10 +1096,11 @@ const workerCode = [
 'self.onmessage = function(e) {',
 '    const flat = e.data.flat;',
 '    const weight = e.data.weight;',
+'    const jitter = (typeof e.data.jitter === "number" && e.data.jitter >= 0) ? e.data.jitter : 0;',
 '    const timer = { t0: Date.now() };',
 '    const result = solveWithEscalation(flat, weight, function(nodes, maxG, time, w) {',
 '        self.postMessage({ type: "progress", nodes: nodes, maxG: maxG, time: time, weight: w });',
-'    }, timer);',
+'    }, timer, jitter);',
 '    const elapsed = Date.now() - timer.t0;',
 '    if (result && result.sol) {',
 '        self.postMessage({ type: "done", sol: result.sol, rotation: result.rotation,',
@@ -1191,12 +1213,13 @@ function doSolve() {
     const flat = flatFromPuzzle();
     if (flatSolved(flat)) { solverInfo.textContent = 'Already solved.'; return; }
     const weight = Math.max(1, parseFloat(weightInput.value) || 3);
+    const jitter = Math.max(0, parseFloat(jitterInput.value) || 0);
 
     _solving = true;
     _stopRequested = false;
     _scrambleId++;
     setSolveButtonSolving(true);
-    solverInfo.textContent = 'Solver started (base W = ' + weight + ')…';
+    solverInfo.textContent = 'Solver started (W = ' + weight + ', R = ' + jitter + ')…';
 
     if (solverWorker) solverWorker.terminate();
     solverWorker = new Worker(workerUrl);
@@ -1242,7 +1265,7 @@ function doSolve() {
         _stopRequested = false;
         setSolveButtonSolving(false);
     };
-    solverWorker.postMessage({ flat: flat, weight: weight });
+    solverWorker.postMessage({ flat: flat, weight: weight, jitter: jitter });
 }
 
 /* ================================================================
